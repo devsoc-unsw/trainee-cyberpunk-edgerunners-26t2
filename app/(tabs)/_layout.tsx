@@ -1,5 +1,4 @@
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { Icon, Label, NativeTabs, VectorIcon } from 'expo-router/unstable-native-tabs';
+import { NativeTabs } from 'expo-router/unstable-native-tabs';
 
 import { colors } from '@/theme';
 
@@ -13,25 +12,25 @@ export default function TabsLayout() {
       tintColor={colors.accent}
     >
       <NativeTabs.Trigger name="feed">
-        <Icon
+        <NativeTabs.Trigger.Icon
           sf="list.bullet"
-          androidSrc={<VectorIcon family={MaterialIcons} name="format-list-bulleted" />}
+          md="format_list_bulleted"
         />
-        <Label>Markets</Label>
+        <NativeTabs.Trigger.Label>Markets</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="portfolio">
-        <Icon
+        <NativeTabs.Trigger.Icon
           sf={{ default: 'briefcase', selected: 'briefcase.fill' }}
-          androidSrc={<VectorIcon family={MaterialIcons} name="account-balance-wallet" />}
+          md="account_balance_wallet"
         />
-        <Label>Portfolio</Label>
+        <NativeTabs.Trigger.Label>Portfolio</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="leaderboard">
-        <Icon
+        <NativeTabs.Trigger.Icon
           sf={{ default: 'trophy', selected: 'trophy.fill' }}
-          androidSrc={<VectorIcon family={MaterialIcons} name="leaderboard" />}
+          md="leaderboard"
         />
-        <Label>Leaderboard</Label>
+        <NativeTabs.Trigger.Label>Leaderboard</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
     </NativeTabs>
   );
