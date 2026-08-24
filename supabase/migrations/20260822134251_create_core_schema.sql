@@ -21,7 +21,7 @@ create table outcomes (
     id uuid primary key default gen_random_uuid(),
     market_id uuid not null references markets(id) on delete cascade,
     name text not null,
-    pool numeric(12, 2) not null default 0,
+    pool bigint not null default 0,
     created_at timestamptz not null default now(),
 
     check (pool >= 0),
@@ -33,7 +33,7 @@ create table positions (
     profile_id uuid not null references profiles(id) on delete cascade,
     market_id uuid not null references markets(id) on delete cascade,
     outcome_id uuid not null references outcomes(id) on delete cascade,
-    stake numeric(12, 2) not null,
+    stake bigint not null,
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now(),
 
@@ -44,7 +44,7 @@ create table positions (
 create table ledger (
     id uuid primary key default gen_random_uuid(),
     profile_id uuid not null references profiles(id) on delete cascade,
-    delta numeric(12, 2) not null,
+    delta bigint not null,
     reason text not null,
     ref_id uuid,
     created_at timestamptz not null default now(),
