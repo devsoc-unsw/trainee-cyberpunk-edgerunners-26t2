@@ -113,6 +113,17 @@ export function AdminTextInput({ style, ...props }: TextInputProps) {
   );
 }
 
+export function AdminField({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <View style={{ gap: spacing.xs }}>
+      <ThemedText variant="subhead" style={{ color: colors.text, fontWeight: '600' }}>
+        {label}
+      </ThemedText>
+      {children}
+    </View>
+  );
+}
+
 export function AdminFilter({ children, active = false }: { children: string; active?: boolean }) {
   return (
     <Pressable

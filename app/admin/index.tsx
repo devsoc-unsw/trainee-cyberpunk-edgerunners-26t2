@@ -1,27 +1,12 @@
 import { router } from 'expo-router';
-import { useEffect } from 'react';
 import { View } from 'react-native';
 
 import { AdminRow, AdminSectionLabel } from '@/components/admin/admin-components';
 import { Screen } from '@/components/ui/screen';
 import { ThemedText } from '@/components/ui/themed-text';
 import { spacing } from '@/theme';
-import { useDemoSession } from '@/state/demo-session';
 
 export default function AdminHomeScreen() {
-  const { session } = useDemoSession();
-  const isAdmin = session?.role === 'ADMIN';
-
-  useEffect(() => {
-    if (!isAdmin) {
-      router.replace('/feed');
-    }
-  }, [isAdmin]);
-
-  if (!isAdmin) {
-    return null;
-  }
-
   return (
     <Screen>
       <View style={{ gap: spacing.xs }}>

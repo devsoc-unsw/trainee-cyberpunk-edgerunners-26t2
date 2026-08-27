@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { Alert, View } from 'react-native';
 
-import { AdminActionButton, AdminRow, AdminSectionLabel, AdminStatus, AdminTextInput } from '@/components/admin/admin-components';
+import { AdminActionButton, AdminField, AdminRow, AdminSectionLabel, AdminStatus, AdminTextInput } from '@/components/admin/admin-components';
 import { PlaceholderState } from '@/components/ui/placeholder-state';
 import { Screen } from '@/components/ui/screen';
 import { ThemedText } from '@/components/ui/themed-text';
@@ -33,8 +33,12 @@ export default function AdminUserDetailsScreen() {
         <AdminSectionLabel>Credits</AdminSectionLabel>
         <AdminRow title="Current balance" value={`${user.balance.toLocaleString()} credits`} />
         <View style={{ gap: spacing.md }}>
-          <AdminTextInput placeholder="Credit adjustment" keyboardType="number-pad" />
-          <AdminTextInput placeholder="Reason for adjustment" />
+          <AdminField label="Credit adjustment">
+            <AdminTextInput placeholder="e.g. 100" keyboardType="number-pad" accessibilityLabel="Credit adjustment" />
+          </AdminField>
+          <AdminField label="Reason">
+            <AdminTextInput placeholder="Why are you changing the balance?" accessibilityLabel="Reason for adjustment" />
+          </AdminField>
           <AdminActionButton>Adjust credits</AdminActionButton>
         </View>
       </View>

@@ -1,7 +1,7 @@
 import { useLocalSearchParams } from 'expo-router';
 import { View } from 'react-native';
 
-import { AdminActionButton, AdminTextInput } from '@/components/admin/admin-components';
+import { AdminActionButton, AdminField, AdminTextInput } from '@/components/admin/admin-components';
 import { PlaceholderState } from '@/components/ui/placeholder-state';
 import { Screen } from '@/components/ui/screen';
 import { ThemedText } from '@/components/ui/themed-text';
@@ -20,11 +20,21 @@ export default function EditMarketScreen() {
     <Screen>
       <ThemedText variant="title">Edit market</ThemedText>
       <View style={{ gap: spacing.md }}>
-        <AdminTextInput defaultValue={market.title} />
-        <AdminTextInput defaultValue={market.description} multiline numberOfLines={3} />
-        <AdminTextInput defaultValue={market.category} />
-        <AdminTextInput defaultValue={market.closesAt} />
-        <AdminTextInput defaultValue={market.resolutionCriteria} multiline numberOfLines={4} />
+        <AdminField label="Question">
+          <AdminTextInput defaultValue={market.title} accessibilityLabel="Question" />
+        </AdminField>
+        <AdminField label="Description">
+          <AdminTextInput defaultValue={market.description} multiline numberOfLines={3} accessibilityLabel="Description" />
+        </AdminField>
+        <AdminField label="Category">
+          <AdminTextInput defaultValue={market.category} accessibilityLabel="Category" />
+        </AdminField>
+        <AdminField label="Closing date">
+          <AdminTextInput defaultValue={market.closesAt} accessibilityLabel="Closing date" />
+        </AdminField>
+        <AdminField label="Resolution criteria">
+          <AdminTextInput defaultValue={market.resolutionCriteria} multiline numberOfLines={4} accessibilityLabel="Resolution criteria" />
+        </AdminField>
         <AdminActionButton>Save changes</AdminActionButton>
       </View>
     </Screen>

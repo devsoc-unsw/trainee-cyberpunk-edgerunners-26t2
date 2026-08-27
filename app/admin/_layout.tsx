@@ -1,6 +1,23 @@
+import { router } from 'expo-router';
+import { useEffect } from 'react';
 import { Stack } from 'expo-router/stack';
 
+import { useDemoSession } from '@/state/demo-session';
+
 export default function AdminLayout() {
+  const { session } = useDemoSession();
+  const isAdmin = session?.role === 'ADMIN';
+
+  useEffect(() => {
+    if (!isAdmin) {
+      router.replace('/feed');
+    }
+  }, [isAdmin]);
+
+  if (!isAdmin) {
+    return null;
+  }
+
   return (
     <Stack
       screenOptions={{

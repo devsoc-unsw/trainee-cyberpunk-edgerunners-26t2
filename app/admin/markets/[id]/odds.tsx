@@ -2,7 +2,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 
-import { AdminActionButton, AdminTextInput } from '@/components/admin/admin-components';
+import { AdminActionButton, AdminField, AdminTextInput } from '@/components/admin/admin-components';
 import { PlaceholderState } from '@/components/ui/placeholder-state';
 import { Screen } from '@/components/ui/screen';
 import { ThemedText } from '@/components/ui/themed-text';
@@ -30,13 +30,19 @@ export default function OverrideOddsScreen() {
       <ThemedText variant="title">Override odds</ThemedText>
       <ThemedText variant="subhead">{market.title}</ThemedText>
       <View style={{ gap: spacing.md }}>
-        <AdminTextInput value={`${yesPercent}`} placeholder="YES percentage" keyboardType="number-pad" onChangeText={(value) => setPercentage(value, 'YES')} />
-        <AdminTextInput value={`${noPercent}`} placeholder="NO percentage" keyboardType="number-pad" onChangeText={(value) => setPercentage(value, 'NO')} />
+        <AdminField label="YES percentage">
+          <AdminTextInput value={`${yesPercent}`} keyboardType="number-pad" onChangeText={(value) => setPercentage(value, 'YES')} accessibilityLabel="YES percentage" />
+        </AdminField>
+        <AdminField label="NO percentage">
+          <AdminTextInput value={`${noPercent}`} keyboardType="number-pad" onChangeText={(value) => setPercentage(value, 'NO')} accessibilityLabel="NO percentage" />
+        </AdminField>
         <ThemedText variant="headline">YES {yesPercent}% · NO {noPercent}%</ThemedText>
         <AdminActionButton onPress={() => setYesProbability(0.25)}>25 / 75</AdminActionButton>
         <AdminActionButton onPress={() => setYesProbability(0.5)}>50 / 50</AdminActionButton>
         <AdminActionButton onPress={() => setYesProbability(0.75)}>75 / 25</AdminActionButton>
-        <AdminTextInput placeholder="Reason for override" multiline numberOfLines={3} />
+        <AdminField label="Reason">
+          <AdminTextInput placeholder="Reason for override" multiline numberOfLines={3} accessibilityLabel="Reason for override" />
+        </AdminField>
         <AdminActionButton>Apply override</AdminActionButton>
       </View>
     </Screen>
