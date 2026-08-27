@@ -6,12 +6,14 @@ import { Screen } from '@/components/ui/screen';
 import { ThemedText } from '@/components/ui/themed-text';
 import { colors, radius, spacing } from '@/theme';
 import { supabase } from '@/lib/supabase';
+import { useDemoSession } from '@/state/demo-session';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { signIn: signInDemoSession } = useDemoSession();
 
   const handleSignIn = async () => {
     setErrorMessage(null);
@@ -29,6 +31,9 @@ export default function LoginScreen() {
       setErrorMessage(error.message);
       return;
     }
+
+    // Update demo session
+    signInDemoSession(email.trim(), password);
     
     // Continue to feed page
     router.replace('/feed');
