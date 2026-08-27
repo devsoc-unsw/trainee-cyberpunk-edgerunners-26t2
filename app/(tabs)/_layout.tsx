@@ -8,7 +8,10 @@ export default function TabsLayout() {
       backgroundColor={colors.surface}
       blurEffect="systemMaterialDark"
       iconColor={{ default: colors.muted, selected: colors.accent }}
-      labelStyle={{ default: { color: colors.muted }, selected: { color: colors.accent } }}
+      labelStyle={{
+        default: { color: colors.muted, fontSize: 11 },
+        selected: { color: colors.accent, fontSize: 11 },
+      }}
       tintColor={colors.accent}
     >
       <NativeTabs.Trigger name="feed">
