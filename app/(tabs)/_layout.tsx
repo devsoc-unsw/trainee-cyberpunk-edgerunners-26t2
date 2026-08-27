@@ -27,7 +27,7 @@ export default function TabsLayout() {
           sf={{ default: 'trophy', selected: 'trophy.fill' }}
           md="leaderboard"
         />
-        <NativeTabs.Trigger.Label>Leaderboard</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Label>Ranks</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="portfolio">
         <NativeTabs.Trigger.Icon
