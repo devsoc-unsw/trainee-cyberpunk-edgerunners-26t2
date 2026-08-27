@@ -1,11 +1,17 @@
 import { Link, router } from 'expo-router';
+import { useState } from 'react';
 import { Pressable, TextInput, View } from 'react-native';
 
 import { Screen } from '@/components/ui/screen';
 import { ThemedText } from '@/components/ui/themed-text';
 import { colors, radius, spacing } from '@/theme';
+import { useDemoSession } from '@/state/demo-session';
 
 export default function LoginScreen() {
+  const { signIn } = useDemoSession();
+  const [identifier, setIdentifier] = useState('');
+  const [password, setPassword] = useState('');
+
   return (
     <Screen centered contentContainerStyle={{ paddingVertical: spacing.xxxl }}>
       <View style={{ gap: spacing.sm }}>
@@ -14,12 +20,12 @@ export default function LoginScreen() {
 
       <View style={{ gap: spacing.md }}>
         <View style={{ gap: spacing.sm }}>
-          <ThemedText variant="subhead">Email</ThemedText>
+          <ThemedText variant="subhead">Username</ThemedText>
           <TextInput
             autoCapitalize="none"
-            autoComplete="email"
-            keyboardType="email-address"
-            placeholder="name@unsw.edu.au"
+            autoComplete="username"
+            onChangeText={setIdentifier}
+            placeholder="test"
             placeholderTextColor={colors.inputPlaceholder}
             style={{
               width: '100%',
@@ -38,8 +44,10 @@ export default function LoginScreen() {
         <View style={{ gap: spacing.sm }}>
           <ThemedText variant="subhead">Password</ThemedText>
           <TextInput
+            autoCapitalize="none"
             autoComplete="password"
-            placeholder="Password"
+            onChangeText={setPassword}
+            placeholder="test"
             placeholderTextColor={colors.inputPlaceholder}
             secureTextEntry
             style={{
@@ -59,7 +67,10 @@ export default function LoginScreen() {
 
       <Pressable
         accessibilityRole="button"
-        onPress={() => router.replace('/feed')}
+        onPress={() => {
+          signIn(identifier, password);
+          router.replace('/feed');
+        }}
         style={({ pressed }) => ({
           width: '100%',
           height: 50,
