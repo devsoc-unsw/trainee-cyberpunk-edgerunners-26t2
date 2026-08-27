@@ -2,6 +2,7 @@ export type MarketStatus = 'OPEN' | 'CLOSED' | 'RESOLVED';
 export type Outcome = 'YES' | 'NO';
 export type PositionStatus = 'OPEN' | 'WON' | 'LOST';
 export type UserRole = 'USER' | 'ADMIN';
+export type { Database, Json } from './api';
 
 export type User = {
   id: string;
