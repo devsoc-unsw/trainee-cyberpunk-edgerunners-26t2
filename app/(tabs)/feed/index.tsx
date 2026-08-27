@@ -18,11 +18,10 @@ const probabilityHistory: Record<string, number[]> = {
   '4': [58, 63, 67, 65, 70, 76, 79, 77, 74],
 };
 
-function getChartData(market: Market) {
+function getProbabilityHistory(market: Market) {
   const currentProbability = Math.round(market.yesProbability * 100);
-  const history = probabilityHistory[market.id] ?? [currentProbability];
 
-  return history.map((value) => ({ value }));
+  return probabilityHistory[market.id] ?? [currentProbability];
 }
 
 function createBatch(batch: number): FeedItem[] {
@@ -34,7 +33,9 @@ function createBatch(batch: number): FeedItem[] {
 
 function MarketPage({ item, height, width }: { item: FeedItem; height: number; width: number }) {
   const yes = Math.round(item.market.yesProbability * 100);
-  const chartHeight = Math.min(200, Math.max(132, height * 0.26));
+  const history = getProbabilityHistory(item.market);
+  const change = yes - history[0];
+  const chartHeight = Math.min(160, Math.max(112, height * 0.2));
   const chartWidth = Math.max(240, width - spacing.xl * 2);
 
   return (
@@ -46,31 +47,62 @@ function MarketPage({ item, height, width }: { item: FeedItem; height: number; w
         </Text>
       </View>
 
-      <View style={styles.chart} pointerEvents="none">
-        <LineChart
-          data={getChartData(item.market)}
-          width={chartWidth}
-          height={chartHeight}
-          maxValue={100}
-          adjustToWidth
-          disableScroll
-          initialSpacing={0}
-          endSpacing={0}
-          yAxisLabelWidth={0}
-          curved
-          areaChart
-          color={colors.accent}
-          thickness={2}
-          startFillColor={colors.accent}
-          endFillColor={colors.accent}
-          startOpacity={0.3}
-          endOpacity={0}
-          hideRules
-          gradientDirection="vertical"
-          hideDataPoints
-          hideYAxisText
-          hideAxesAndRules
-        />
+      <View style={styles.chartSection} pointerEvents="none">
+        <View style={styles.priceRow}>
+          <View>
+            <Text style={styles.priceLabel}>YES price</Text>
+            <View style={styles.priceValueRow}>
+              <Text style={styles.priceValue}>{yes}¢</Text>
+              <Text style={styles.priceChange}>
+                {change >= 0 ? '+' : ''}
+                {change}¢
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.ranges}>
+            {['1H', '1D', '1W', 'ALL'].map((range) => (
+              <View key={range} style={[styles.range, range === '1W' && styles.activeRange]}>
+                <Text style={[styles.rangeLabel, range === '1W' && styles.activeRangeLabel]}>
+                  {range}
+                </Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.chart}>
+          <LineChart
+            data={history.map((value) => ({ value }))}
+            width={chartWidth}
+            height={chartHeight}
+            maxValue={100}
+            adjustToWidth
+            disableScroll
+            initialSpacing={0}
+            endSpacing={0}
+            yAxisLabelWidth={0}
+            curved
+            areaChart
+            color={colors.accent}
+            thickness={2}
+            startFillColor={colors.accent}
+            endFillColor={colors.accent}
+            startOpacity={0.3}
+            endOpacity={0}
+            hideRules
+            gradientDirection="vertical"
+            hideDataPoints
+            hideYAxisText
+            hideAxesAndRules
+          />
+        </View>
+
+        <View style={styles.dateRow}>
+          <Text style={styles.dateLabel}>20 Aug</Text>
+          <Text style={styles.dateLabel}>23 Aug</Text>
+          <Text style={styles.dateLabel}>Now</Text>
+        </View>
       </View>
 
       <View style={styles.outcomes}>
@@ -117,8 +149,11 @@ export default function FeedScreen() {
             offset: viewport.height * index,
             index,
           })}
-          pagingEnabled
+          snapToInterval={viewport.height}
+          snapToAlignment="start"
+          disableIntervalMomentum
           decelerationRate="fast"
+          directionalLockEnabled
           showsVerticalScrollIndicator={false}
           onEndReached={loadMore}
           onEndReachedThreshold={0.75}
@@ -162,11 +197,70 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: -0.4,
   },
-  chart: {
+  chartSection: {
     flex: 1,
-    alignItems: 'center',
+    gap: spacing.sm,
     justifyContent: 'center',
+  },
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    gap: spacing.lg,
+  },
+  priceLabel: {
+    ...typography.caption,
+    color: colors.muted,
+  },
+  priceValueRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: spacing.sm,
+  },
+  priceValue: {
+    color: colors.text,
+    fontSize: 28,
+    lineHeight: 34,
+    fontWeight: '700',
+    letterSpacing: -0.4,
+  },
+  priceChange: {
+    ...typography.subhead,
+    color: colors.yes,
+    fontWeight: '600',
+  },
+  ranges: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+  },
+  range: {
+    minWidth: 32,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.full,
+    alignItems: 'center',
+  },
+  activeRange: {
+    backgroundColor: colors.surface,
+  },
+  rangeLabel: {
+    ...typography.caption,
+    color: colors.muted,
+  },
+  activeRangeLabel: {
+    color: colors.text,
+  },
+  chart: {
+    alignItems: 'center',
     overflow: 'hidden',
+  },
+  dateRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  dateLabel: {
+    ...typography.caption,
+    color: colors.muted,
   },
   outcomes: {
     flexDirection: 'row',
