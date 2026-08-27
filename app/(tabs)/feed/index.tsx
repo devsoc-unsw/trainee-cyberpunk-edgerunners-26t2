@@ -1,4 +1,3 @@
-import { PlaceholderState } from '@/components/ui/placeholder-state';
 import { Screen } from '@/components/ui/screen';
 import { LineChart } from "react-native-gifted-charts";
 

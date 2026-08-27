@@ -1,0 +1,123 @@
+import { AdminAction, AdminBet, AdminUser, Market } from '@/types';
+
+export const adminMarkets: Market[] = [
+  {
+    id: '1',
+    title: 'Will UNSW cancel classes because of extreme weather this term?',
+    description: 'A campus prediction for the current teaching term.',
+    category: 'UNSW',
+    status: 'OPEN',
+    closesAt: '2026-11-15',
+    resolutionCriteria: 'Resolves YES if UNSW officially cancels on-campus classes for a full day.',
+    yesProbability: 0.24,
+  },
+  {
+    id: '2',
+    title: 'Will Australia win the next Ashes series?',
+    description: 'Predict the winner of the next completed Ashes series.',
+    category: 'Sport',
+    status: 'OPEN',
+    closesAt: '2027-01-01',
+    resolutionCriteria: 'Resolves YES if Australia wins the next completed Ashes series.',
+    yesProbability: 0.55,
+  },
+  {
+    id: '3',
+    title: 'Will the RBA cut interest rates before December?',
+    description: 'Tracks the official cash rate announced by the Reserve Bank of Australia.',
+    category: 'Economics',
+    status: 'CLOSED',
+    closesAt: '2026-12-01',
+    resolutionCriteria: 'Resolves YES if the RBA announces a cash-rate reduction before 1 December 2026.',
+    yesProbability: 0.68,
+  },
+  {
+    id: '4',
+    title: 'Will a student society event sell out during O-Week?',
+    description: 'A sample voided market for admin states.',
+    category: 'Campus',
+    status: 'VOIDED',
+    closesAt: '2026-08-20',
+    resolutionCriteria: 'Resolves YES if the event reaches its listed capacity before it begins.',
+    yesProbability: 0.74,
+  },
+];
+
+export const adminBets: AdminBet[] = [
+  {
+    id: 'bet-1',
+    userId: 'user-1',
+    marketId: '1',
+    outcome: 'YES',
+    stake: 80,
+    potentialPayout: 333,
+    status: 'OPEN',
+    userName: 'Maya Chen',
+    marketTitle: adminMarkets[0].title,
+    placedAt: '2026-08-26',
+    oddsAtPlacement: 0.24,
+  },
+  {
+    id: 'bet-2',
+    userId: 'user-2',
+    marketId: '2',
+    outcome: 'NO',
+    stake: 120,
+    potentialPayout: 267,
+    status: 'OPEN',
+    userName: 'Liam Patel',
+    marketTitle: adminMarkets[1].title,
+    placedAt: '2026-08-25',
+    oddsAtPlacement: 0.55,
+  },
+  {
+    id: 'bet-3',
+    userId: 'user-3',
+    marketId: '4',
+    outcome: 'YES',
+    stake: 60,
+    potentialPayout: 81,
+    status: 'REFUNDED',
+    userName: 'Noah Williams',
+    marketTitle: adminMarkets[3].title,
+    placedAt: '2026-08-20',
+    oddsAtPlacement: 0.74,
+  },
+];
+
+export const adminUsers: AdminUser[] = [
+  { id: 'user-1', name: 'Maya Chen', email: 'maya@unsw.edu.au', balance: 1240, role: 'USER', status: 'ACTIVE', betCount: 4 },
+  { id: 'user-2', name: 'Liam Patel', email: 'liam@unsw.edu.au', balance: 860, role: 'USER', status: 'ACTIVE', betCount: 7 },
+  { id: 'user-3', name: 'Noah Williams', email: 'noah@unsw.edu.au', balance: 1460, role: 'USER', status: 'SUSPENDED', betCount: 2 },
+  { id: 'admin-1', name: 'Test Admin', email: 'test@unswager.app', balance: 2500, role: 'ADMIN', status: 'ACTIVE', betCount: 0 },
+];
+
+export const adminHistory: AdminAction[] = [
+  {
+    id: 'action-1',
+    adminName: 'Test Admin',
+    action: 'MARKET_VOIDED',
+    target: adminMarkets[3].title,
+    summary: 'Voided market and refunded 3 bets',
+    reason: 'Event was cancelled by the organiser.',
+    createdAt: '2026-08-20 · 4:32 pm',
+  },
+  {
+    id: 'action-2',
+    adminName: 'Test Admin',
+    action: 'ODDS_OVERRIDE',
+    target: adminMarkets[0].title,
+    summary: 'Changed YES odds to 24%',
+    reason: 'Initial market calibration.',
+    createdAt: '2026-08-19 · 10:15 am',
+  },
+  {
+    id: 'action-3',
+    adminName: 'Test Admin',
+    action: 'BET_REFUNDED',
+    target: 'Noah Williams',
+    summary: 'Refunded 60 credits',
+    reason: 'Duplicate bet reported by user.',
+    createdAt: '2026-08-18 · 2:08 pm',
+  },
+];
