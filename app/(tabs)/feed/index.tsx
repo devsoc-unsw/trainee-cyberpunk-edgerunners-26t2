@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import { FlatList, LayoutChangeEvent, StyleSheet, Text, View } from 'react-native';
+import { FlatList, LayoutChangeEvent, Platform, StyleSheet, Text, View } from 'react-native';
 import { LineChart } from 'react-native-gifted-charts';
 
 import { mockMarkets } from '@/data/mock-markets';
@@ -175,13 +175,15 @@ const styles = StyleSheet.create({
   page: {
     gap: spacing.xl,
     paddingHorizontal: spacing.xl,
-    paddingTop:
-      process.env.EXPO_OS === 'web'
-        ? spacing.xl + spacing.xxxl + spacing.lg
-        : process.env.EXPO_OS === 'ios'
-          ? spacing.xxxl + spacing.lg
-          : spacing.xl,
-    paddingBottom: process.env.EXPO_OS === 'ios' ? spacing.xxxl * 2 : spacing.lg,
+    paddingTop: Platform.select({
+      web: spacing.xl + spacing.xxxl + spacing.lg,
+      ios: spacing.xxxl + spacing.lg,
+      default: spacing.xl,
+    }),
+    paddingBottom: Platform.select({
+      ios: spacing.xxxl * 2,
+      default: spacing.lg,
+    }),
   },
   marketHeader: {
     gap: spacing.md,
