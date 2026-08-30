@@ -6,6 +6,7 @@ import { Screen } from '@/components/ui/screen';
 import { ThemedText } from '@/components/ui/themed-text';
 import { colors, radius, spacing } from '@/theme';
 import { useDemoSession } from '@/state/demo-session';
+import { supabase } from '@/lib/supabase';
 
 function ProfileRow({ title, onPress }: { title: string; onPress?: () => void }) {
   return (
@@ -33,7 +34,8 @@ function ProfileRow({ title, onPress }: { title: string; onPress?: () => void })
 
 export default function ProfileScreen() {
   const { session, signOut } = useDemoSession();
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
+    await supabase.auth.signOut({ scope: 'local' });
     signOut();
     router.replace('/login');
   };
