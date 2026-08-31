@@ -40,12 +40,6 @@ function MarketPage({ item, height, width }: { item: FeedItem; height: number; w
 
   return (
     <View style={[styles.page, { height }]}>
-      <View style={styles.marketHeader}>
-        <Text style={styles.category}>{item.market.category}</Text>
-        <Text style={styles.title} numberOfLines={4}>
-          {item.market.title}
-        </Text>
-      </View>
 
       <View style={styles.chartSection} pointerEvents="none">
         <View style={styles.priceRow}>
@@ -103,6 +97,13 @@ function MarketPage({ item, height, width }: { item: FeedItem; height: number; w
           <Text style={styles.dateLabel}>23 Aug</Text>
           <Text style={styles.dateLabel}>Now</Text>
         </View>
+      </View>
+
+      <View style={styles.marketHeader}>
+        <Text style={styles.category}>{item.market.category}</Text>
+        <Text style={styles.title} numberOfLines={4}>
+          {item.market.title}
+        </Text>
       </View>
 
       <View style={styles.outcomes}>
