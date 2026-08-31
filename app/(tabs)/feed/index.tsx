@@ -5,6 +5,7 @@ import { LineChart } from 'react-native-gifted-charts';
 import { mockMarkets } from '@/data/mock-markets';
 import { colors, radius, spacing, typography } from '@/theme';
 import { Market } from '@/types';
+import { BalanceHeader } from '@/components/ui/balance-header';
 
 type FeedItem = {
   key: string;
@@ -138,6 +139,9 @@ export default function FeedScreen() {
 
   return (
     <View style={styles.container} onLayout={handleLayout}>
+      <View style={styles.balanceHeader} pointerEvents='box-none'>
+        <BalanceHeader />
+      </View>
       {viewport.height > 0 ? (
         <FlatList
           data={items}
@@ -293,5 +297,10 @@ const styles = StyleSheet.create({
   noValue: {
     ...typography.title,
     color: colors.no,
+  },
+  balanceHeader: {
+    position: 'absolute',
+    top: spacing.xxxl,
+    left: spacing.xl,
   },
 });
