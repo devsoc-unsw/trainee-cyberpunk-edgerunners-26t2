@@ -13,6 +13,7 @@ type DemoSessionContextValue = {
   session: DemoSession | null;
   signIn: (identifier: string, password: string) => void;
   signOut: () => void;
+  setBalance: (n: number) => void;
 };
 
 const DemoSessionContext = createContext<DemoSessionContextValue | null>(null);
@@ -32,6 +33,12 @@ export function DemoSessionProvider({ children }: { children: React.ReactNode })
         });
       },
       signOut: () => setSession(null),
+      setBalance: (n: number) => {
+        if (session == null) {
+          return;
+        }
+        setSession({ ...session, balance: n });
+      }
     }),
     [session]
   );
