@@ -1,5 +1,6 @@
-import { createContext, use, useMemo, useState } from 'react';
+import { createContext, use, useEffect, useMemo, useState } from 'react';
 
+import { supabase } from '@/lib/supabase';
 import { UserRole } from '@/types';
 
 type DemoSession = {
@@ -20,6 +21,45 @@ const DemoSessionContext = createContext<DemoSessionContextValue | null>(null);
 
 export function DemoSessionProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<DemoSession | null>(null);
+
+  // On startup
+  useEffect(() => {
+    // Check for pre-existing session
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) {
+        setSession((current) =>
+          current ?? {
+            name: 'UNSW Student',
+            email: data.session.user.email ?? 'student@unsw.edu.au',
+            balance: 1000,
+            role: 'USER',
+          }
+        );
+      }
+    });
+    
+    // Subscribe to supabase auth state changes
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, supabaseSession) => {
+      if (!supabaseSession) {
+        setSession(null);
+        return;
+      }
+      setSession((current) =>
+        current ?? {
+          name: 'UNSW Student',
+          email: supabaseSession.user.email ?? 'student@unsw.edu.au',
+          balance: 1000,
+          role: 'USER',
+        }
+      );
+    });
+    
+    // Reset subscription on unmount
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
+
   const value = useMemo(
     () => ({
       session,
