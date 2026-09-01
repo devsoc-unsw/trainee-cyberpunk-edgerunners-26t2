@@ -46,6 +46,14 @@ export default function SignupScreen() {
       return;
     }
 
+    // When email confirmations are switched off, sign-up returns a live
+    // session and there is nothing to verify -- go straight to naming
+    // yourself instead of waiting for an email that will never arrive.
+    if (data.session) {
+      router.replace('/onboarding/username');
+      return;
+    }
+
     // Update sent state
     setVerificationSent(true);
   };

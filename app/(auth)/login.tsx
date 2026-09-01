@@ -6,37 +6,41 @@ import { Screen } from '@/components/ui/screen';
 import { ThemedText } from '@/components/ui/themed-text';
 import { colors, radius, spacing } from '@/theme';
 import { supabase } from '@/lib/supabase';
-import { useDemoSession } from '@/state/demo-session';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { signIn: signInDemoSession } = useDemoSession();
 
   const handleSignIn = async () => {
     setErrorMessage(null);
     
     // Call supabase login
     setIsSubmitting(true);
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email: email.trim(),
       password,
     });
-    setIsSubmitting(false);
- 
+
     // Display error
     if (error) {
+      setIsSubmitting(false);
       setErrorMessage(error.message);
       return;
     }
 
-    // Update demo session
-    signInDemoSession(email.trim(), password);
-    
-    // Continue to feed page
-    router.replace('/feed');
+    // Anyone who has not been through the "What should we call you?" screen
+    // yet goes there first. Read it here rather than waiting on the session
+    // context so the destination is settled before we navigate.
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('username')
+      .eq('id', data.user.id)
+      .maybeSingle();
+    setIsSubmitting(false);
+
+    router.replace(profile?.username ? '/feed' : '/onboarding/username');
   };
 
   return (
