@@ -61,7 +61,10 @@ export type Database = {
           category: string
           closes_at: string
           created_at: string
+          description: string
           id: string
+          resolution_criteria: string
+          resolved_outcome: string | null
           status: string
           title: string
         }
@@ -69,7 +72,10 @@ export type Database = {
           category: string
           closes_at: string
           created_at?: string
+          description?: string
           id?: string
+          resolution_criteria?: string
+          resolved_outcome?: string | null
           status?: string
           title: string
         }
@@ -77,7 +83,10 @@ export type Database = {
           category?: string
           closes_at?: string
           created_at?: string
+          description?: string
           id?: string
+          resolution_criteria?: string
+          resolved_outcome?: string | null
           status?: string
           title?: string
         }
@@ -177,23 +186,70 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
+          email: string | null
           id: string
+          role: string
+          status: string
           username: string | null
         }
         Insert: {
           created_at?: string
+          email?: string | null
           id: string
+          role?: string
+          status?: string
           username?: string | null
         }
         Update: {
           created_at?: string
+          email?: string | null
           id?: string
+          role?: string
+          status?: string
           username?: string | null
+        }
+        Relationships: []
+      }
+      admin_actions: {
+        Row: {
+          action: string
+          admin_id: string
+          created_at: string
+          id: string
+          reason: string
+          summary: string
+          target: string
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          created_at?: string
+          id?: string
+          reason: string
+          summary: string
+          target: string
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          created_at?: string
+          id?: string
+          reason?: string
+          summary?: string
+          target?: string
         }
         Relationships: []
       }
     }
     Views: {
+      leaderboard: {
+        Row: {
+          balance: number | null
+          profile_id: string | null
+          username: string | null
+        }
+        Relationships: []
+      }
       profile_balances: {
         Row: {
           balance: number | null
@@ -203,7 +259,108 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      ensure_current_profile: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      place_bet: {
+        Args: {
+          p_outcome_id: string
+          p_stake: number
+        }
+        Returns: Json
+      }
+      create_market: {
+        Args: {
+          p_category: string
+          p_closes_at: string
+          p_description: string
+          p_no_pool: number
+          p_resolution_criteria: string
+          p_title: string
+          p_yes_pool: number
+        }
+        Returns: Json
+      }
+      update_market: {
+        Args: {
+          p_category: string
+          p_closes_at: string
+          p_description: string
+          p_market_id: string
+          p_resolution_criteria: string
+          p_title: string
+        }
+        Returns: Json
+      }
+      set_market_status: {
+        Args: {
+          p_market_id: string
+          p_reason: string
+          p_status: string
+        }
+        Returns: Json
+      }
+      override_market_odds: {
+        Args: {
+          p_market_id: string
+          p_reason: string
+          p_yes_percent: number
+        }
+        Returns: Json
+      }
+      resolve_market: {
+        Args: {
+          p_market_id: string
+          p_reason: string
+          p_winning_outcome: string
+        }
+        Returns: Json
+      }
+      void_market: {
+        Args: {
+          p_market_id: string
+          p_reason: string
+        }
+        Returns: Json
+      }
+      delete_market: {
+        Args: {
+          p_market_id: string
+        }
+        Returns: Json
+      }
+      refund_position: {
+        Args: {
+          p_position_id: string
+          p_reason: string
+        }
+        Returns: Json
+      }
+      adjust_user_balance: {
+        Args: {
+          p_delta: number
+          p_reason: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      set_user_status: {
+        Args: {
+          p_reason: string
+          p_status: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      set_user_role: {
+        Args: {
+          p_reason: string
+          p_role: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never

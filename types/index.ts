@@ -50,7 +50,20 @@ export type AdminBet = Position & {
 export type AdminAction = {
   id: string;
   adminName: string;
-  action: 'ODDS_OVERRIDE' | 'BET_REFUNDED' | 'MARKET_VOIDED' | 'USER_SUSPENDED' | 'CREDIT_ADJUSTMENT';
+  action:
+    | 'ODDS_OVERRIDE'
+    | 'BET_REFUNDED'
+    | 'MARKET_VOIDED'
+    | 'MARKET_CREATED'
+    | 'MARKET_UPDATED'
+    | 'MARKET_CLOSED'
+    | 'MARKET_REOPENED'
+    | 'MARKET_RESOLVED'
+    | 'MARKET_DELETED'
+    | 'USER_SUSPENDED'
+    | 'USER_REACTIVATED'
+    | 'USER_ROLE_CHANGED'
+    | 'CREDIT_ADJUSTMENT';
   target: string;
   summary: string;
   reason: string;

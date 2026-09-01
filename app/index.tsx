@@ -1,5 +1,9 @@
 import { Redirect } from 'expo-router';
+import { useDemoSession } from '@/state/demo-session';
 
 export default function Index() {
-  return <Redirect href="/login" />;
+  const { session, isReady } = useDemoSession();
+
+  if (!isReady) return null;
+  return <Redirect href={session ? '/feed' : '/login'} />;
 }

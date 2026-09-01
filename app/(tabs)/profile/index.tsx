@@ -4,9 +4,9 @@ import { Pressable, View } from 'react-native';
 import { AdminSectionLabel } from '@/components/admin/admin-components';
 import { Screen } from '@/components/ui/screen';
 import { ThemedText } from '@/components/ui/themed-text';
-import { colors, radius, spacing } from '@/theme';
-import { useDemoSession } from '@/state/demo-session';
 import { supabase } from '@/lib/supabase';
+import { useDemoSession } from '@/state/demo-session';
+import { colors, radius, spacing } from '@/theme';
 
 function ProfileRow({ title, onPress }: { title: string; onPress?: () => void }) {
   return (
@@ -14,17 +14,7 @@ function ProfileRow({ title, onPress }: { title: string; onPress?: () => void })
       accessibilityRole={onPress ? 'button' : undefined}
       disabled={!onPress}
       onPress={onPress}
-      style={({ pressed }) => ({
-        minHeight: 64,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: spacing.lg,
-        paddingVertical: spacing.md,
-        borderBottomWidth: 1,
-        borderBottomColor: colors.border,
-        opacity: pressed ? 0.72 : 1,
-      })}
+      style={({ pressed }) => ({ minHeight: 64, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.border, opacity: pressed ? 0.72 : 1 })}
     >
       <ThemedText variant="headline">{title}</ThemedText>
       {onPress ? <ThemedText variant="title" style={{ color: colors.muted }}>›</ThemedText> : null}
@@ -34,6 +24,7 @@ function ProfileRow({ title, onPress }: { title: string; onPress?: () => void })
 
 export default function ProfileScreen() {
   const { session, signOut } = useDemoSession();
+
   const handleSignOut = async () => {
     await supabase.auth.signOut({ scope: 'local' });
     signOut();
@@ -48,16 +39,16 @@ export default function ProfileScreen() {
       </View>
 
       <View style={{ gap: spacing.xs, padding: spacing.lg, backgroundColor: colors.surface, borderRadius: radius.lg, borderCurve: 'continuous' }}>
-        <ThemedText variant="caption">FAKE-CREDIT BALANCE</ThemedText>
-        <ThemedText variant="largeTitle" style={{ color: colors.accent }}>{session?.balance.toLocaleString() ?? '1,000'} cr</ThemedText>
+        <ThemedText variant="caption">CREDIT BALANCE</ThemedText>
+        <ThemedText variant="largeTitle" style={{ color: colors.accent }}>{session?.balance.toLocaleString() ?? '0'} cr</ThemedText>
       </View>
 
       <View style={{ gap: spacing.sm }}>
         <AdminSectionLabel>Account</AdminSectionLabel>
         <View style={{ overflow: 'hidden', backgroundColor: colors.surface, borderRadius: radius.lg, borderCurve: 'continuous' }}>
-          <ProfileRow title="My predictions" />
+          <ProfileRow title="My predictions" onPress={() => router.push('/portfolio')} />
           <ProfileRow title="Settings" />
-          <ProfileRow title="Sign out" onPress={handleSignOut} />
+          <ProfileRow title="Sign out" onPress={() => void handleSignOut()} />
         </View>
       </View>
 

@@ -5,7 +5,22 @@ Run
 ```
 npm install
 ```
-then create a .env file and put the environmental variables in there.
+then create a `.env` file from `.env.example` and add the project's anon key:
+
+```sh
+cp .env.example .env
+```
+
+Set `EXPO_PUBLIC_SUPABASE_ANON_KEY` to the anon/publishable key from the Supabase dashboard. The app only uses the public anon key; never put a service-role key in `.env`.
+
+Apply the database migrations to the linked project before running the app:
+
+```sh
+supabase db push
+npm run start
+```
+
+The current project is linked to `cyberpunk2077`. New accounts receive 1,000 credits from the database trigger. To enable the admin area, set the user's `app_metadata.role` to `admin` in Supabase Auth (or use the protected admin role operation after the first admin exists).
 
 ## Git Quick Guide
 Creating a new branch

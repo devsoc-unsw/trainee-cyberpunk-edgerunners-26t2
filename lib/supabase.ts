@@ -1,6 +1,9 @@
 import 'react-native-url-polyfill/auto';
 import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 import { createClient } from '@supabase/supabase-js';
+
+import type { Database } from '@/types';
 
 // Translate between SecureStore ops and Supabase client data
 const ExpoSecureStoreAdapter = {
@@ -15,15 +18,38 @@ const ExpoSecureStoreAdapter = {
   },
 };
 
+const WebStorageAdapter = {
+  getItem: async (key: string) => {
+    if (typeof localStorage === 'undefined') return null;
+    return localStorage.getItem(key);
+  },
+  setItem: async (key: string, value: string) => {
+    if (typeof localStorage !== 'undefined') localStorage.setItem(key, value);
+  },
+  removeItem: async (key: string) => {
+    if (typeof localStorage !== 'undefined') localStorage.removeItem(key);
+  },
+};
+
 // Read environment variables. Only EXPO_PUBLIC_* vars are inlined into the app
 // bundle, so anything the client needs has to carry that prefix.
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
+function requiredEnv(name: 'EXPO_PUBLIC_SUPABASE_URL' | 'EXPO_PUBLIC_SUPABASE_ANON_KEY') {
+  const value = process.env[name];
+
+  if (!value) {
+    throw new Error(`Missing ${name}. Copy .env.example to .env and provide your Supabase credentials.`);
+  }
+
+  return value;
+}
+
+const supabaseUrl = requiredEnv('EXPO_PUBLIC_SUPABASE_URL');
+const supabaseAnonKey = requiredEnv('EXPO_PUBLIC_SUPABASE_ANON_KEY');
 
 // Initialise Supabase client
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
-    storage: ExpoSecureStoreAdapter,
+    storage: Platform.OS === 'web' ? WebStorageAdapter : ExpoSecureStoreAdapter,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,

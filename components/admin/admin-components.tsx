@@ -15,7 +15,7 @@ type AdminRowProps = {
 export function AdminRow({ title, subtitle, value, danger, onPress }: AdminRowProps) {
   return (
     <Pressable
-      accessibilityRole="button"
+      accessibilityRole={onPress ? 'button' : undefined}
       disabled={!onPress}
       onPress={onPress}
       style={({ pressed }) => ({
@@ -33,9 +33,7 @@ export function AdminRow({ title, subtitle, value, danger, onPress }: AdminRowPr
       })}
     >
       <View style={{ flex: 1, gap: spacing.xs }}>
-        <ThemedText variant="headline" style={danger ? { color: colors.no } : undefined}>
-          {title}
-        </ThemedText>
+        <ThemedText variant="headline" style={danger ? { color: colors.no } : undefined}>{title}</ThemedText>
         {subtitle ? <ThemedText variant="subhead">{subtitle}</ThemedText> : null}
       </View>
       {value ? <ThemedText variant="subhead">{value}</ThemedText> : null}
@@ -45,11 +43,7 @@ export function AdminRow({ title, subtitle, value, danger, onPress }: AdminRowPr
 }
 
 export function AdminSectionLabel({ children }: { children: string }) {
-  return (
-    <ThemedText variant="caption" style={{ letterSpacing: 0.7 }}>
-      {children.toUpperCase()}
-    </ThemedText>
-  );
+  return <ThemedText variant="caption" style={{ letterSpacing: 0.7 }}>{children.toUpperCase()}</ThemedText>;
 }
 
 export function AdminStatus({ label, tone = 'neutral' }: { label: string; tone?: 'neutral' | 'positive' | 'negative' | 'warning' }) {
@@ -62,29 +56,20 @@ export function AdminStatus({ label, tone = 'neutral' }: { label: string; tone?:
 
   return (
     <View style={{ alignSelf: 'flex-start', paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderRadius: radius.full, backgroundColor: toneStyles[tone].backgroundColor }}>
-      <ThemedText variant="caption" style={{ color: toneStyles[tone].color, fontWeight: '700' }}>
-        {label}
-      </ThemedText>
+      <ThemedText variant="caption" style={{ color: toneStyles[tone].color, fontWeight: '700' }}>{label}</ThemedText>
     </View>
   );
 }
 
-export function AdminSearch({ placeholder }: { placeholder: string }) {
+export function AdminSearch({ placeholder, value, onChangeText }: { placeholder: string; value?: string; onChangeText?: (value: string) => void }) {
   return (
     <TextInput
       accessibilityLabel={placeholder}
+      onChangeText={onChangeText}
       placeholder={placeholder}
       placeholderTextColor={colors.inputPlaceholder}
-      style={{
-        height: 48,
-        paddingHorizontal: spacing.lg,
-        backgroundColor: colors.surface,
-        borderColor: colors.border,
-        borderWidth: 1,
-        borderRadius: radius.md,
-        color: colors.inputText,
-        fontSize: 16,
-      }}
+      value={value}
+      style={{ height: 48, paddingHorizontal: spacing.lg, backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1, borderRadius: radius.md, color: colors.inputText, fontSize: 16 }}
     />
   );
 }
@@ -93,54 +78,24 @@ export function AdminTextInput({ style, ...props }: TextInputProps) {
   return (
     <TextInput
       placeholderTextColor={colors.inputPlaceholder}
-      style={[
-        {
-          minHeight: 48,
-          paddingHorizontal: spacing.lg,
-          paddingVertical: spacing.md,
-          backgroundColor: colors.surface,
-          borderColor: colors.border,
-          borderWidth: 1,
-          borderRadius: radius.md,
-          color: colors.inputText,
-          fontSize: 16,
-          textAlignVertical: 'top',
-        },
-        style,
-      ]}
+      style={[{ minHeight: 48, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1, borderRadius: radius.md, color: colors.inputText, fontSize: 16, textAlignVertical: 'top' }, style]}
       {...props}
     />
   );
 }
 
 export function AdminField({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <View style={{ gap: spacing.xs }}>
-      <ThemedText variant="subhead" style={{ color: colors.text, fontWeight: '600' }}>
-        {label}
-      </ThemedText>
-      {children}
-    </View>
-  );
+  return <View style={{ gap: spacing.xs }}><ThemedText variant="subhead" style={{ color: colors.text, fontWeight: '600' }}>{label}</ThemedText>{children}</View>;
 }
 
-export function AdminFilter({ children, active = false }: { children: string; active?: boolean }) {
+export function AdminFilter({ children, active = false, onPress }: { children: string; active?: boolean; onPress?: () => void }) {
   return (
     <Pressable
       accessibilityRole="button"
-      style={({ pressed }) => ({
-        paddingHorizontal: spacing.md,
-        paddingVertical: spacing.sm,
-        borderRadius: radius.full,
-        backgroundColor: active ? colors.accent : colors.surface,
-        borderWidth: 1,
-        borderColor: active ? colors.accent : colors.border,
-        opacity: pressed ? 0.72 : 1,
-      })}
+      onPress={onPress}
+      style={({ pressed }) => ({ paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.full, backgroundColor: active ? colors.accent : colors.surface, borderWidth: 1, borderColor: active ? colors.accent : colors.border, opacity: pressed ? 0.72 : 1 })}
     >
-      <ThemedText variant="caption" style={{ color: active ? colors.accentText : colors.muted, fontWeight: '700' }}>
-        {children}
-      </ThemedText>
+      <ThemedText variant="caption" style={{ color: active ? colors.accentText : colors.muted, fontWeight: '700' }}>{children}</ThemedText>
     </Pressable>
   );
 }
@@ -152,19 +107,9 @@ export function AdminActionButton({ children, danger, disabled = false, style, o
       accessibilityState={{ disabled }}
       disabled={disabled}
       onPress={onPress}
-      style={({ pressed }) => ({
-        minHeight: 48,
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingHorizontal: spacing.lg,
-        borderRadius: radius.md,
-        backgroundColor: danger ? '#452427' : colors.accent,
-        opacity: disabled ? 0.4 : pressed ? 0.72 : 1,
-      })}
+      style={({ pressed }) => ({ minHeight: 48, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.lg, borderRadius: radius.md, backgroundColor: danger ? '#452427' : colors.accent, opacity: disabled ? 0.4 : pressed ? 0.72 : 1 })}
     >
-      <ThemedText style={[{ color: danger ? colors.no : colors.accentText, fontWeight: '700' }, style]}>
-        {children}
-      </ThemedText>
+      <ThemedText style={[{ color: danger ? colors.no : colors.accentText, fontWeight: '700' }, style]}>{children}</ThemedText>
     </Pressable>
   );
 }
