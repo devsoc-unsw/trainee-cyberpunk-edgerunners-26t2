@@ -175,6 +175,17 @@ function firstRelation<T>(relation: T | T[] | null | undefined): T | null {
   return Array.isArray(relation) ? relation[0] ?? null : relation ?? null;
 }
 
+function fallbackStudentName(id: string) {
+  let hash = 0;
+
+  for (const character of id) {
+    hash = (hash * 31 + character.charCodeAt(0)) | 0;
+  }
+
+  const number = Math.abs(hash) % 100000;
+  return `Student ${number.toString().padStart(5, '0')}`;
+}
+
 function mapOutcome(row: OutcomeRow): MarketOutcome | null {
   const name = normalizeOutcome(row.name);
 
@@ -415,7 +426,7 @@ export async function fetchLeaderboard() {
 
     return {
       id,
-      name: row.username || `Student ${id.slice(0, 8)}`,
+      name: row.username || fallbackStudentName(id),
       balance: row.balance ?? 0,
       rank: index + 1,
     };

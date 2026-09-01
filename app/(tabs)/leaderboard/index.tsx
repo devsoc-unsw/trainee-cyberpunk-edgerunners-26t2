@@ -45,7 +45,6 @@ export default function LeaderboardScreen() {
       style={{ flex: 1, backgroundColor: colors.background }}
       contentContainerStyle={{ padding: spacing.lg, gap: spacing.md, flexGrow: 1 }}
       refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={() => void loadLeaderboard(true)} tintColor={colors.accent} />}
-      ListHeaderComponent={<ThemedText variant="title" style={{ marginBottom: spacing.sm }}>Leaderboard</ThemedText>}
       ListEmptyComponent={<View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}><PlaceholderState title="No rankings yet" description="Rankings will appear once people start predicting." /></View>}
       renderItem={({ item }) => (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.lg, backgroundColor: colors.surface, borderRadius: radius.lg, borderCurve: 'continuous' }}>
