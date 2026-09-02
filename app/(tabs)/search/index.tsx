@@ -1,21 +1,76 @@
 import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { FlatList, Pressable, TextInput, View } from 'react-native';
 
 import { ThemedText } from '@/components/ui/themed-text';
-import { mockMarkets } from '@/data/mock-markets';
+import { supabase } from '@/lib/supabase';
 import { colors, radius, spacing } from '@/theme';
+
+type SearchMarket = {
+  id: string;
+  title: string;
+  category: string;
+  status: string;
+  yesProbability: number;
+};
 
 export default function SearchScreen() {
   const [query, setQuery] = useState('');
+  const [allMarkets, setAllMarkets] = useState<SearchMarket[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadMarkets() {
+      setIsLoading(true);
+      setLoadError(null);
+
+      const { data, error } = await supabase
+        .from('markets')
+        .select('id, title, category, status, outcomes(name, pool)');
+
+      if (!isMounted) return;
+
+      if (error) {
+        setLoadError(error.message);
+        setIsLoading(false);
+        return;
+      }
+
+      const computed: SearchMarket[] = (data ?? []).map((market) => {
+        const yesPool = market.outcomes.find((o) => o.name === 'Yes')?.pool ?? 0;
+        const noPool = market.outcomes.find((o) => o.name === 'No')?.pool ?? 0;
+        const totalPool = yesPool + noPool;
+
+        return {
+          id: market.id,
+          title: market.title,
+          category: market.category,
+          status: market.status,
+          yesProbability: totalPool > 0 ? yesPool / totalPool : 0.5,
+        };
+      });
+
+      setAllMarkets(computed);
+      setIsLoading(false);
+    }
+
+    loadMarkets();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const markets = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
-    if (!normalizedQuery) return mockMarkets;
+    if (!normalizedQuery) return allMarkets;
 
-    return mockMarkets.filter((market) =>
+    return allMarkets.filter((market) =>
       `${market.title} ${market.category}`.toLowerCase().includes(normalizedQuery),
     );
-  }, [query]);
+  }, [query, allMarkets]);
 
   return (
     <FlatList
@@ -45,16 +100,22 @@ export default function SearchScreen() {
               fontSize: 16,
             }}
           />
-          <ThemedText variant="subhead">
-            {markets.length} {markets.length === 1 ? 'market' : 'markets'}
-          </ThemedText>
+          {loadError ? (
+            <ThemedText style={{ color: colors.accent }}>Couldn't load markets: {loadError}</ThemedText>
+          ) : (
+            <ThemedText variant="subhead">
+              {isLoading ? 'Loading…' : `${markets.length} ${markets.length === 1 ? 'market' : 'markets'}`}
+            </ThemedText>
+          )}
         </View>
       }
       ListEmptyComponent={
-        <View style={{ paddingVertical: spacing.xxl, alignItems: 'center', gap: spacing.sm }}>
-          <ThemedText variant="headline">No markets found</ThemedText>
-          <ThemedText variant="subhead">Try a different search.</ThemedText>
-        </View>
+        isLoading ? null : (
+          <View style={{ paddingVertical: spacing.xxl, alignItems: 'center', gap: spacing.sm }}>
+            <ThemedText variant="headline">No markets found</ThemedText>
+            <ThemedText variant="subhead">Try a different search.</ThemedText>
+          </View>
+        )
       }
       renderItem={({ item }) => (
         <Pressable
