@@ -1,8 +1,8 @@
 import { fetchBalance as fetchRemoteBalance } from '@/lib/data';
-import { useDemoSession } from '@/state/demo-session';
+import { useSession } from '@/state/session';
 
 export function useBalance() {
-  const { session, setBalance } = useDemoSession();
+  const { session, setBalance } = useSession();
   const balance = session?.balance ?? null;
   const refresh = async () => {
     if (!session?.id) {

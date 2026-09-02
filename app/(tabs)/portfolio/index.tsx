@@ -5,12 +5,12 @@ import { PlaceholderState } from '@/components/ui/placeholder-state';
 import { Screen } from '@/components/ui/screen';
 import { ThemedText } from '@/components/ui/themed-text';
 import { fetchPositions } from '@/lib/data';
-import { useDemoSession } from '@/state/demo-session';
+import { useSession } from '@/state/session';
 import { colors, radius, spacing } from '@/theme';
 import { Position } from '@/types';
 
 export default function PortfolioScreen() {
-  const { session } = useDemoSession();
+  const { session } = useSession();
   const [positions, setPositions] = useState<Position[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);

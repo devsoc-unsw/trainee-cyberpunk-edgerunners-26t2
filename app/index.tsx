@@ -1,9 +1,9 @@
 import { Redirect } from 'expo-router';
 
-import { useDemoSession } from '@/state/demo-session';
+import { useSession } from '@/state/session';
 
 export default function Index() {
-  const { session, isLoading } = useDemoSession();
+  const { session, isLoading } = useSession();
 
   if (isLoading) {
     return null;
