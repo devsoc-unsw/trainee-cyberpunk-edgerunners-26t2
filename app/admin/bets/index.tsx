@@ -1,17 +1,28 @@
 import { router } from 'expo-router';
-import { FlatList, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, FlatList, View } from 'react-native';
 
 import { AdminFilter, AdminSearch, AdminStatus } from '@/components/admin/admin-components';
 import { ThemedText } from '@/components/ui/themed-text';
-import { adminBets } from '@/data/mock-admin';
+import { fetchAdminBets } from '@/lib/data';
 import { colors, spacing } from '@/theme';
+import { AdminBet } from '@/types';
 
 export default function AdminBetsScreen() {
+  const [bets, setBets] = useState<AdminBet[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    void fetchAdminBets()
+      .then(setBets)
+      .finally(() => setIsLoading(false));
+  }, []);
+
   return (
     <FlatList
       contentInsetAdjustmentBehavior="automatic"
       contentContainerStyle={{ gap: spacing.md, padding: spacing.lg, paddingBottom: spacing.xxxl }}
-      data={adminBets}
+      data={bets}
       keyExtractor={(item) => item.id}
       ListHeaderComponent={
         <View style={{ gap: spacing.md }}>
@@ -25,6 +36,7 @@ export default function AdminBetsScreen() {
           </View>
         </View>
       }
+      ListEmptyComponent={isLoading ? <ActivityIndicator color={colors.accent} /> : null}
       renderItem={({ item }) => (
         <View style={{ gap: spacing.sm, padding: spacing.lg, backgroundColor: colors.surface, borderRadius: 16, borderCurve: 'continuous' }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>

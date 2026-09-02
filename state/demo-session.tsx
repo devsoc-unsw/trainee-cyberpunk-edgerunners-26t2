@@ -1,9 +1,11 @@
-import { createContext, use, useEffect, useMemo, useState } from 'react';
+import { createContext, use, useCallback, useEffect, useMemo, useState } from 'react';
 
+import { fetchBalance, fetchProfile } from '@/lib/data';
 import { supabase } from '@/lib/supabase';
 import { UserRole } from '@/types';
 
 type DemoSession = {
+  id: string;
   name: string;
   email: string;
   balance: number;
@@ -12,7 +14,7 @@ type DemoSession = {
 
 type DemoSessionContextValue = {
   session: DemoSession | null;
-  signIn: (identifier: string, password: string) => void;
+  isLoading: boolean;
   signOut: () => void;
   setBalance: (n: number) => void;
 };
@@ -21,66 +23,72 @@ const DemoSessionContext = createContext<DemoSessionContextValue | null>(null);
 
 export function DemoSessionProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<DemoSession | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // On startup
+  const hydrateSession = useCallback(async (user: { id: string; email?: string | null }) => {
+    try {
+      const [profile, balance] = await Promise.all([
+        fetchProfile(user.id, user.email ?? null),
+        fetchBalance(user.id),
+      ]);
+
+      setSession({
+        id: user.id,
+        name: profile.username ?? profile.email ?? 'UNSW Student',
+        email: profile.email ?? user.email ?? 'student@unsw.edu.au',
+        balance,
+        role: profile.role.toUpperCase() === 'ADMIN' ? 'ADMIN' : 'USER',
+      });
+    } catch {
+      setSession({
+        id: user.id,
+        name: user.email?.split('@')[0] ?? 'UNSW Student',
+        email: user.email ?? 'student@unsw.edu.au',
+        balance: 0,
+        role: 'USER',
+      });
+    }
+  }, []);
+
   useEffect(() => {
-    // Check for pre-existing session
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) {
-        setSession((current) =>
-          current ?? {
-            name: 'UNSW Student',
-            email: data.session.user.email ?? 'student@unsw.edu.au',
-            balance: 1000,
-            role: 'USER',
-          }
-        );
+    let isMounted = true;
+
+    void supabase.auth.getSession().then(async ({ data }) => {
+      if (data.session?.user) {
+        await hydrateSession(data.session.user);
+      }
+
+      if (isMounted) {
+        setIsLoading(false);
       }
     });
-    
-    // Subscribe to supabase auth state changes
+
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, supabaseSession) => {
       if (!supabaseSession) {
         setSession(null);
+        setIsLoading(false);
         return;
       }
-      setSession((current) =>
-        current ?? {
-          name: 'UNSW Student',
-          email: supabaseSession.user.email ?? 'student@unsw.edu.au',
-          balance: 1000,
-          role: 'USER',
-        }
-      );
+
+      void hydrateSession(supabaseSession.user);
     });
-    
-    // Reset subscription on unmount
+
     return () => {
+      isMounted = false;
       authListener.subscription.unsubscribe();
     };
-  }, []);
+  }, [hydrateSession]);
 
   const value = useMemo(
     () => ({
       session,
-      signIn: (identifier: string, password: string) => {
-        const isAdmin = identifier.trim().toLowerCase() === 'test' && password === 'test';
-        setSession({
-          name: isAdmin ? 'Test Admin' : 'UNSW Student',
-          email: isAdmin ? 'test@unswager.app' : identifier.trim() || 'student@unsw.edu.au',
-          balance: isAdmin ? 2500 : 1000,
-          role: isAdmin ? 'ADMIN' : 'USER',
-        });
-      },
+      isLoading,
       signOut: () => setSession(null),
       setBalance: (n: number) => {
-        if (session == null) {
-          return;
-        }
-        setSession({ ...session, balance: n });
-      }
+        setSession((current) => (current ? { ...current, balance: n } : current));
+      },
     }),
-    [session]
+    [isLoading, session],
   );
 
   return <DemoSessionContext value={value}>{children}</DemoSessionContext>;

@@ -12,7 +12,9 @@ insert into public.profiles (id, username)
 values (
     '90000000-0000-0000-0000-000000000099',
     'place_bet_test_user'
-);
+)
+on conflict (id) do update
+set username = excluded.username;
 
 insert into public.markets (
     id,
@@ -68,10 +70,15 @@ insert into public.ledger (
     delta,
     reason
 )
-values (
+select
     '90000000-0000-0000-0000-000000000099',
     1000,
     'initial_credit'
+where not exists (
+    select 1
+    from public.ledger
+    where ledger.profile_id = '90000000-0000-0000-0000-000000000099'
+      and ledger.reason = 'initial_credit'
 );
 
 set local request.jwt.claim.sub =
