@@ -153,15 +153,94 @@ export default function FeedScreen() {
   }, []);
 
   if (isLoading) {
-    return <View style={styles.centered}><ActivityIndicator color={colors.accent} /><ThemedText variant="subhead">Loading markets...</ThemedText></View>;
+    return (
+      <View
+        style={[
+          styles.centered,
+          {
+            gap: spacing.md,
+            padding: spacing.xl,
+            backgroundColor: colors.background,
+          },
+        ]}
+      >
+        <ActivityIndicator
+          size="large"
+          color={colors.accent}
+        />
+  
+        <ThemedText
+          variant="subhead"
+          style={{ color: colors.muted }}
+        >
+          Loading markets...
+        </ThemedText>
+      </View>
+    );
   }
-
+  
   if (errorMessage) {
-    return <View style={styles.centered}><PlaceholderState title="Could not load markets" description={errorMessage} /><Pressable onPress={() => void loadMarkets()}><ThemedText variant="subhead" style={{ color: colors.accent }}>Try again</ThemedText></Pressable></View>;
+    return (
+      <View
+        style={[
+          styles.centered,
+          {
+            gap: spacing.lg,
+            padding: spacing.xl,
+            backgroundColor: colors.background,
+          },
+        ]}
+      >
+        <PlaceholderState
+          title="Could not load markets"
+          description={errorMessage}
+        />
+  
+        <Pressable
+          onPress={() => void loadMarkets()}
+          style={({ pressed }) => ({
+            minHeight: 44,
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingHorizontal: spacing.lg,
+            paddingVertical: spacing.sm,
+            backgroundColor: colors.accent,
+            borderRadius: radius.md,
+            borderCurve: 'continuous',
+            opacity: pressed ? 0.72 : 1,
+          })}
+        >
+          <ThemedText
+            variant="subhead"
+            style={{
+              color: colors.accentText,
+              fontWeight: '700',
+            }}
+          >
+            Try again
+          </ThemedText>
+        </Pressable>
+      </View>
+    );
   }
-
+  
   if (markets.length === 0) {
-    return <View style={styles.centered}><PlaceholderState title="No markets yet" description="New predictions will appear here when an admin publishes them." /></View>;
+    return (
+      <View
+        style={[
+          styles.centered,
+          {
+            padding: spacing.xl,
+            backgroundColor: colors.background,
+          },
+        ]}
+      >
+        <PlaceholderState
+          title="No markets yet"
+          description="New predictions will appear here when an admin publishes them."
+        />
+      </View>
+    );
   }
 
   return (
