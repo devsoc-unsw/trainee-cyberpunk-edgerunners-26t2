@@ -27,6 +27,7 @@ export default function SearchScreen() {
       setIsLoading(true);
       setLoadError(null);
 
+      // Query supabase data
       const { data, error } = await supabase
         .from('markets')
         .select('id, title, category, status, outcomes(name, pool)');
@@ -39,6 +40,7 @@ export default function SearchScreen() {
         return;
       }
 
+      // Calculate odds and format data
       const computed: SearchMarket[] = (data ?? []).map((market) => {
         const yesPool = market.outcomes.find((o) => o.name === 'Yes')?.pool ?? 0;
         const noPool = market.outcomes.find((o) => o.name === 'No')?.pool ?? 0;
@@ -63,6 +65,7 @@ export default function SearchScreen() {
     };
   }, []);
 
+  // Update search results on query or market changes
   const markets = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     if (!normalizedQuery) return allMarkets;
