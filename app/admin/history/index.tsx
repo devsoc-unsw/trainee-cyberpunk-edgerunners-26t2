@@ -48,17 +48,206 @@ export default function AdminHistoryScreen() {
   return (
     <FlatList
       contentInsetAdjustmentBehavior="automatic"
-      contentContainerStyle={{ gap: spacing.md, padding: spacing.lg, paddingBottom: spacing.xxxl, flexGrow: 1 }}
+      contentContainerStyle={{
+        padding: spacing.lg,
+        paddingBottom: spacing.xxxl,
+        flexGrow: 1,
+      }}
       data={filteredActions}
       keyExtractor={(item) => item.id}
-      ListHeaderComponent={<View style={{ gap: spacing.md }}><AdminSearch placeholder="Search admin history" value={query} onChangeText={setQuery} /><View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}><AdminFilter active={filter === 'ALL'} onPress={() => setFilter('ALL')}>All</AdminFilter><AdminFilter active={filter === 'MARKETS'} onPress={() => setFilter('MARKETS')}>Markets</AdminFilter><AdminFilter active={filter === 'BETS'} onPress={() => setFilter('BETS')}>Bets</AdminFilter><AdminFilter active={filter === 'USERS'} onPress={() => setFilter('USERS')}>Users</AdminFilter><AdminFilter active={filter === 'CREDITS'} onPress={() => setFilter('CREDITS')}>Credits</AdminFilter></View>{errorMessage ? <ThemedText style={{ color: colors.no }}>{errorMessage}</ThemedText> : null}</View>}
-      ListEmptyComponent={<View style={{ alignItems: 'center', paddingVertical: spacing.xxl }}><ThemedText variant="headline">No admin actions yet</ThemedText></View>}
-      renderItem={({ item }) => (
-        <View style={{ gap: spacing.sm, padding: spacing.lg, backgroundColor: colors.surface, borderRadius: 16, borderCurve: 'continuous' }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md }}><AdminStatus label={item.action.replaceAll('_', ' ')} tone={item.action === 'BET_REFUNDED' || item.action === 'MARKET_VOIDED' ? 'warning' : 'neutral'} /><ThemedText variant="caption">{item.createdAt}</ThemedText></View>
-          <ThemedText variant="headline">{item.summary}</ThemedText><ThemedText variant="subhead">{item.target}</ThemedText><ThemedText variant="body">{item.reason}</ThemedText><ThemedText variant="caption">By {item.adminName}</ThemedText>
-        </View>
+      ItemSeparatorComponent={() => (
+        <View style={{ height: spacing.md }} />
       )}
+      ListHeaderComponent={
+        <View
+          style={{
+            gap: spacing.md,
+            marginBottom: spacing.lg,
+          }}
+        >
+          <AdminSearch
+            placeholder="Search admin history"
+            value={query}
+            onChangeText={setQuery}
+          />
+  
+          <View
+            style={{
+              flexDirection: 'row',
+              flexWrap: 'wrap',
+              gap: spacing.sm,
+            }}
+          >
+            <AdminFilter
+              active={filter === 'ALL'}
+              onPress={() => setFilter('ALL')}
+            >
+              All
+            </AdminFilter>
+  
+            <AdminFilter
+              active={filter === 'MARKETS'}
+              onPress={() => setFilter('MARKETS')}
+            >
+              Markets
+            </AdminFilter>
+  
+            <AdminFilter
+              active={filter === 'BETS'}
+              onPress={() => setFilter('BETS')}
+            >
+              Bets
+            </AdminFilter>
+  
+            <AdminFilter
+              active={filter === 'USERS'}
+              onPress={() => setFilter('USERS')}
+            >
+              Users
+            </AdminFilter>
+  
+            <AdminFilter
+              active={filter === 'CREDITS'}
+              onPress={() => setFilter('CREDITS')}
+            >
+              Credits
+            </AdminFilter>
+          </View>
+  
+          {errorMessage ? (
+            <ThemedText style={{ color: colors.no }}>
+              {errorMessage}
+            </ThemedText>
+          ) : null}
+        </View>
+      }
+      ListEmptyComponent={
+        <View
+          style={{
+            flex: 1,
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingVertical: spacing.xxxl,
+            gap: spacing.sm,
+          }}
+        >
+          <ThemedText variant="headline">
+            No admin actions yet
+          </ThemedText>
+  
+          <ThemedText
+            variant="body"
+            style={{
+              color: colors.muted,
+              textAlign: 'center',
+            }}
+          >
+            Admin activity will appear here.
+          </ThemedText>
+        </View>
+      }
+      renderItem={({ item }) => {
+        const isWarning =
+          item.action === 'BET_REFUNDED' ||
+          item.action === 'MARKET_VOIDED';
+  
+        return (
+          <View
+            style={{
+              gap: spacing.md,
+              padding: spacing.lg,
+              backgroundColor: colors.surface,
+              borderRadius: 16,
+              borderCurve: 'continuous',
+            }}
+          >
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'flex-start',
+                gap: spacing.md,
+              }}
+            >
+              <AdminStatus
+                label={item.action.replaceAll('_', ' ')}
+                tone={isWarning ? 'warning' : 'neutral'}
+              />
+  
+              <ThemedText
+                variant="caption"
+                style={{
+                  color: colors.muted,
+                  flexShrink: 1,
+                  textAlign: 'right',
+                }}
+              >
+                {item.createdAt}
+              </ThemedText>
+            </View>
+  
+            <View style={{ gap: spacing.xs }}>
+              <ThemedText variant="headline">
+                {item.summary}
+              </ThemedText>
+  
+              <ThemedText
+                variant="subhead"
+                style={{ color: colors.accent }}
+              >
+                {item.target}
+              </ThemedText>
+            </View>
+  
+            {item.reason ? (
+              <View
+                style={{
+                  padding: spacing.md,
+                  backgroundColor: colors.background,
+                  borderRadius: 12,
+                  borderCurve: 'continuous',
+                }}
+              >
+                <ThemedText
+                  variant="caption"
+                  style={{
+                    color: colors.muted,
+                    marginBottom: spacing.xs,
+                  }}
+                >
+                  REASON
+                </ThemedText>
+  
+                <ThemedText variant="body">
+                  {item.reason}
+                </ThemedText>
+              </View>
+            ) : null}
+  
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
+              <ThemedText
+                variant="caption"
+                style={{ color: colors.muted }}
+              >
+                Performed by
+              </ThemedText>
+  
+              <ThemedText
+                variant="subhead"
+                style={{ fontWeight: '700' }}
+              >
+                {item.adminName}
+              </ThemedText>
+            </View>
+          </View>
+        );
+      }}
     />
   );
 }
