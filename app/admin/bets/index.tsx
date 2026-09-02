@@ -46,16 +46,207 @@ export default function AdminBetsScreen() {
   return (
     <FlatList
       contentInsetAdjustmentBehavior="automatic"
-      contentContainerStyle={{ gap: spacing.md, padding: spacing.lg, paddingBottom: spacing.xxxl, flexGrow: 1 }}
+      contentContainerStyle={{
+        padding: spacing.lg,
+        paddingBottom: spacing.xxxl,
+        flexGrow: 1,
+      }}
       data={filteredBets}
       keyExtractor={(item) => item.id}
-      ListHeaderComponent={<View style={{ gap: spacing.md }}><AdminSearch placeholder="Search users or markets" value={query} onChangeText={setQuery} /><View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}><AdminFilter active={filter === 'ALL'} onPress={() => setFilter('ALL')}>All</AdminFilter><AdminFilter active={filter === 'OPEN'} onPress={() => setFilter('OPEN')}>Active</AdminFilter><AdminFilter active={filter === 'REFUNDED'} onPress={() => setFilter('REFUNDED')}>Refunded</AdminFilter><AdminFilter active={filter === 'YES'} onPress={() => setFilter('YES')}>YES</AdminFilter><AdminFilter active={filter === 'NO'} onPress={() => setFilter('NO')}>NO</AdminFilter></View>{errorMessage ? <ThemedText style={{ color: colors.no }}>{errorMessage}</ThemedText> : null}</View>}
-      ListEmptyComponent={<View style={{ alignItems: 'center', paddingVertical: spacing.xxl }}><ThemedText variant="headline">No bets found</ThemedText></View>}
+      ItemSeparatorComponent={() => (
+        <View style={{ height: spacing.md }} />
+      )}
+      ListHeaderComponent={
+        <View
+          style={{
+            gap: spacing.md,
+            marginBottom: spacing.lg,
+          }}
+        >
+          <AdminSearch
+            placeholder="Search users or markets"
+            value={query}
+            onChangeText={setQuery}
+          />
+  
+          <View
+            style={{
+              flexDirection: 'row',
+              flexWrap: 'wrap',
+              gap: spacing.sm,
+            }}
+          >
+            <AdminFilter
+              active={filter === 'ALL'}
+              onPress={() => setFilter('ALL')}
+            >
+              All
+            </AdminFilter>
+  
+            <AdminFilter
+              active={filter === 'OPEN'}
+              onPress={() => setFilter('OPEN')}
+            >
+              Active
+            </AdminFilter>
+  
+            <AdminFilter
+              active={filter === 'REFUNDED'}
+              onPress={() => setFilter('REFUNDED')}
+            >
+              Refunded
+            </AdminFilter>
+  
+            <AdminFilter
+              active={filter === 'YES'}
+              onPress={() => setFilter('YES')}
+            >
+              YES
+            </AdminFilter>
+  
+            <AdminFilter
+              active={filter === 'NO'}
+              onPress={() => setFilter('NO')}
+            >
+              NO
+            </AdminFilter>
+          </View>
+  
+          {errorMessage ? (
+            <ThemedText style={{ color: colors.no }}>
+              {errorMessage}
+            </ThemedText>
+          ) : null}
+        </View>
+      }
+      ListEmptyComponent={
+        <View
+          style={{
+            flex: 1,
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingVertical: spacing.xxxl,
+            gap: spacing.sm,
+          }}
+        >
+          <ThemedText variant="headline">
+            No bets found
+          </ThemedText>
+  
+          <ThemedText
+            variant="body"
+            style={{
+              color: colors.muted,
+              textAlign: 'center',
+            }}
+          >
+            Try changing your search or filters.
+          </ThemedText>
+        </View>
+      }
       renderItem={({ item }) => (
-        <View style={{ gap: spacing.sm, padding: spacing.lg, backgroundColor: colors.surface, borderRadius: 16, borderCurve: 'continuous' }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}><AdminStatus label={item.status} tone={statusTone(item.status)} /><ThemedText variant="caption">{item.outcome}</ThemedText></View>
-          <ThemedText variant="headline">{item.userName}</ThemedText><ThemedText variant="subhead">{item.marketTitle}</ThemedText><ThemedText variant="body">{item.stake} credits staked · {item.potentialPayout} potential payout</ThemedText><ThemedText variant="caption">Placed {item.placedAt} · odds {Math.round(item.oddsAtPlacement * 100)}%</ThemedText>
-          <ThemedText variant="subhead" onPress={() => router.push(`/admin/bets/${item.id}`)} style={{ color: colors.accent, fontWeight: '700' }}>View bet ›</ThemedText>
+        <View
+          style={{
+            gap: spacing.md,
+            padding: spacing.lg,
+            backgroundColor: colors.surface,
+            borderRadius: 16,
+            borderCurve: 'continuous',
+          }}
+        >
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
+            <AdminStatus
+              label={item.status}
+              tone={statusTone(item.status)}
+            />
+  
+            <ThemedText
+              variant="subhead"
+              style={{
+                color:
+                  item.outcome === 'YES'
+                    ? colors.yes
+                    : colors.no,
+                fontWeight: '700',
+              }}
+            >
+              {item.outcome}
+            </ThemedText>
+          </View>
+  
+          <View style={{ gap: spacing.xs }}>
+            <ThemedText variant="headline">
+              {item.userName}
+            </ThemedText>
+  
+            <ThemedText
+              variant="subhead"
+              style={{ color: colors.muted }}
+            >
+              {item.marketTitle}
+            </ThemedText>
+          </View>
+  
+          <View
+            style={{
+              flexDirection: 'row',
+              gap: spacing.xl,
+            }}
+          >
+            <View style={{ flex: 1, gap: spacing.xs }}>
+              <ThemedText
+                variant="caption"
+                style={{ color: colors.muted }}
+              >
+                STAKE
+              </ThemedText>
+  
+              <ThemedText variant="subhead">
+                {item.stake} credits
+              </ThemedText>
+            </View>
+  
+            <View style={{ flex: 1, gap: spacing.xs }}>
+              <ThemedText
+                variant="caption"
+                style={{ color: colors.muted }}
+              >
+                POTENTIAL PAYOUT
+              </ThemedText>
+  
+              <ThemedText variant="subhead">
+                {item.potentialPayout} credits
+              </ThemedText>
+            </View>
+          </View>
+  
+          <ThemedText
+            variant="caption"
+            style={{ color: colors.muted }}
+          >
+            Placed {item.placedAt} · Odds{' '}
+            {Math.round(item.oddsAtPlacement * 100)}%
+          </ThemedText>
+  
+          <ThemedText
+            variant="subhead"
+            onPress={() =>
+              router.push(`/admin/bets/${item.id}`)
+            }
+            style={{
+              color: colors.accent,
+              fontWeight: '700',
+              paddingTop: spacing.xs,
+            }}
+          >
+            View bet ›
+          </ThemedText>
         </View>
       )}
     />
