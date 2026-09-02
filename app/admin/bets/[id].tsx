@@ -51,12 +51,99 @@ export default function AdminBetDetailsScreen() {
 
   return (
     <Screen>
-      <View style={{ gap: spacing.sm }}><AdminStatus label={bet.status} tone={bet.status === 'REFUNDED' ? 'warning' : bet.status === 'LOST' ? 'negative' : 'positive'} /><ThemedText variant="title">{bet.userName}</ThemedText><ThemedText variant="body">{bet.marketTitle}</ThemedText></View>
-      <View style={{ gap: spacing.sm }}><AdminSectionLabel>Bet details</AdminSectionLabel><AdminRow title="Outcome" value={bet.outcome} /><AdminRow title="Stake" value={`${bet.stake} credits`} /><AdminRow title="Potential payout" value={`${bet.potentialPayout} credits`} /><AdminRow title="Odds when placed" value={`${Math.round(bet.oddsAtPlacement * 100)}%`} /><AdminRow title="Placed" value={bet.placedAt} /></View>
-      <AdminActionButton disabled={isBusy || bet.status === 'REFUNDED'} danger onPress={() => void handleRefund()}>Remove and refund bet</AdminActionButton>
-      <ThemedText variant="caption" style={{ color: colors.muted }}>Refund amount: {bet.stake} credits</ThemedText>
-      {errorMessage ? <ThemedText style={{ color: colors.no }}>{errorMessage}</ThemedText> : null}
-      <ThemedText variant="subhead" onPress={() => router.back()} style={{ color: colors.accent }}>Back</ThemedText>
+      <View style={{ gap: spacing.lg }}>
+        {/* Header */}
+        <View style={{ gap: spacing.sm }}>
+          <AdminStatus
+            label={bet.status}
+            tone={
+              bet.status === 'REFUNDED'
+                ? 'warning'
+                : bet.status === 'LOST'
+                  ? 'negative'
+                  : 'positive'
+            }
+          />
+  
+          <ThemedText variant="title">
+            {bet.userName}
+          </ThemedText>
+  
+          <ThemedText
+            variant="body"
+            style={{ color: colors.muted }}
+          >
+            {bet.marketTitle}
+          </ThemedText>
+        </View>
+  
+        <View
+          style={{
+            gap: spacing.sm,
+            padding: spacing.md,
+            borderRadius: 12,
+            backgroundColor: colors.card,
+          }}
+        >
+          <AdminSectionLabel>Bet details</AdminSectionLabel>
+  
+          <AdminRow title="Outcome" value={bet.outcome} />
+          <AdminRow title="Stake" value={`${bet.stake} credits`} />
+          <AdminRow
+            title="Potential payout"
+            value={`${bet.potentialPayout} credits`}
+          />
+          <AdminRow
+            title="Odds when placed"
+            value={`${Math.round(bet.oddsAtPlacement * 100)}%`}
+          />
+          <AdminRow title="Placed" value={bet.placedAt} />
+        </View>
+  
+        <View style={{ gap: spacing.sm }}>
+          <AdminActionButton
+            danger
+            disabled={isBusy || bet.status === 'REFUNDED'}
+            onPress={() => void handleRefund()}
+          >
+            {isBusy ? 'Refunding...' : 'Remove and refund bet'}
+          </AdminActionButton>
+  
+          <ThemedText
+            variant="caption"
+            style={{
+              color: colors.muted,
+              textAlign: 'center',
+            }}
+          >
+            Refund amount: {bet.stake} credits
+          </ThemedText>
+  
+          {errorMessage ? (
+            <ThemedText
+              variant="caption"
+              style={{
+                color: colors.no,
+                textAlign: 'center',
+              }}
+            >
+              {errorMessage}
+            </ThemedText>
+          ) : null}
+        </View>
+  
+        <ThemedText
+          variant="subhead"
+          onPress={() => router.back()}
+          style={{
+            color: colors.accent,
+            textAlign: 'center',
+            paddingVertical: spacing.sm,
+          }}
+        >
+          Back
+        </ThemedText>
+      </View>
     </Screen>
   );
 }
