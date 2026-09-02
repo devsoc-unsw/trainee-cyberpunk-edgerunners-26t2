@@ -116,7 +116,6 @@ export default function LoginScreen() {
         <Link href="/signup" style={{ color: colors.accent, fontSize: 15, fontWeight: '600' }}>
           Create an account
         </Link>
-        <ThemedText variant="caption">Use your Supabase account</ThemedText>
       </View>
     </Screen>
   );
