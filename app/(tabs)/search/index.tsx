@@ -82,7 +82,14 @@ export default function SearchScreen() {
           accessibilityRole="button"
           accessibilityLabel={`Open ${item.title}`}
           onPress={() => router.push(`/markets/${item.id}`)}
-          style={({ pressed }) => ({ gap: spacing.md, padding: spacing.lg, backgroundColor: colors.surface, borderRadius: radius.lg, borderCurve: 'continuous', opacity: pressed ? 0.72 : 1 })}
+          style={({ pressed }) => ({
+            gap: spacing.md,
+            padding: spacing.lg,
+            backgroundColor: colors.surface,
+            borderRadius: radius.lg,
+            borderCurve: 'continuous',
+            opacity: pressed ? 0.72 : 1,
+          })}
         >
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md }}>
             <ThemedText variant="caption" style={{ color: colors.accent }}>{item.category.toUpperCase()}</ThemedText>
