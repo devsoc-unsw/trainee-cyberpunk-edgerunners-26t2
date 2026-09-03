@@ -174,6 +174,22 @@ values
     ('30000000-0000-0000-0000-000000000005', 'zihan@student.unsw.edu.au', now() - interval '1 day')
 on conflict (id) do nothing;
 
+update public.profiles
+set username = case id
+    when '30000000-0000-0000-0000-000000000001' then 'avi'
+    when '30000000-0000-0000-0000-000000000002' then 'eric'
+    when '30000000-0000-0000-0000-000000000003' then 'ivan'
+    when '30000000-0000-0000-0000-000000000004' then 'shin'
+    when '30000000-0000-0000-0000-000000000005' then 'zihan'
+end
+where id in (
+    '30000000-0000-0000-0000-000000000001',
+    '30000000-0000-0000-0000-000000000002',
+    '30000000-0000-0000-0000-000000000003',
+    '30000000-0000-0000-0000-000000000004',
+    '30000000-0000-0000-0000-000000000005'
+);
+
 insert into public.markets (id, title, category, closes_at, status)
 values
     (

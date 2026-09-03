@@ -33,17 +33,18 @@ select is(
         from public.profiles
         where id = 'a0000000-0000-0000-0000-000000000001'
     ),
-    'lb-winner',
-    'profile username uses the lowercase email prefix'
+    null::text,
+    'a new profile remains unnamed until onboarding'
 );
 
-select ok(
+select is(
     (
-        select username like 'collision-%'
+        select email
         from public.profiles
         where id = 'b0000000-0000-0000-0000-000000000002'
     ),
-    'a username collision receives a UUID suffix'
+    'collision@unsw.edu.au',
+    'profile provisioning stores the account email'
 );
 
 select is(
@@ -57,25 +58,48 @@ select is(
     'profile creation adds one initial credit entry'
 );
 
-select lives_ok(
-    $$
-        select private.ensure_user_profile(
-            'a0000000-0000-0000-0000-000000000001',
-            'lb-winner@student.unsw.edu.au'
-        )
-    $$,
-    'profile backfill is safe to repeat'
+select is(
+    (
+        select count(*)
+        from pg_trigger
+        where tgrelid = 'auth.users'::regclass
+          and not tgisinternal
+          and tgname in ('create_profile_for_auth_user', 'on_auth_user_created')
+    ),
+    1::bigint,
+    'only one profile provisioning trigger remains'
 );
 
 select is(
     (
         select count(*)
         from public.ledger
-        where profile_id = 'a0000000-0000-0000-0000-000000000001'
-          and reason = 'initial_credit'
+        where reason = 'initial_credit'
+          and profile_id in (
+              select id
+              from public.profiles
+              where email like 'lb-%@student.unsw.edu.au'
+                 or email like 'collision%@%.edu.au'
+          )
     ),
-    1::bigint,
-    'repeated backfill does not duplicate initial credit'
+    59::bigint,
+    'profile provisioning creates one initial credit per account'
+);
+
+update public.profiles
+set username = case id
+    when 'a0000000-0000-0000-0000-000000000001' then 'lb_winner'
+    when 'a0000000-0000-0000-0000-000000000002' then 'lb_tie_early'
+    when 'a0000000-0000-0000-0000-000000000003' then 'lb_tie_late'
+    when 'a0000000-0000-0000-0000-000000000004' then 'lb_open'
+    when 'a0000000-0000-0000-0000-000000000005' then 'lb_loss'
+end
+where id in (
+    'a0000000-0000-0000-0000-000000000001',
+    'a0000000-0000-0000-0000-000000000002',
+    'a0000000-0000-0000-0000-000000000003',
+    'a0000000-0000-0000-0000-000000000004',
+    'a0000000-0000-0000-0000-000000000005'
 );
 
 insert into public.markets (id, title, category, closes_at, status)
