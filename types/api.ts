@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_actions: {
+        Row: {
+          action: string
+          admin_id: string
+          created_at: string
+          id: string
+          reason: string
+          summary: string
+          target: string
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          created_at?: string
+          id?: string
+          reason?: string
+          summary: string
+          target: string
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          created_at?: string
+          id?: string
+          reason?: string
+          summary?: string
+          target?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_actions_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ledger: {
         Row: {
           created_at: string
@@ -61,7 +99,9 @@ export type Database = {
           category: string
           closes_at: string
           created_at: string
+          description: string
           id: string
+          resolution_criteria: string
           status: string
           title: string
         }
@@ -69,7 +109,9 @@ export type Database = {
           category: string
           closes_at: string
           created_at?: string
+          description?: string
           id?: string
+          resolution_criteria?: string
           status?: string
           title: string
         }
@@ -77,7 +119,9 @@ export type Database = {
           category?: string
           closes_at?: string
           created_at?: string
+          description?: string
           id?: string
+          resolution_criteria?: string
           status?: string
           title?: string
         }
@@ -177,20 +221,26 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
+          email: string | null
           id: string
           role: string
+          status: string
           username: string | null
         }
         Insert: {
           created_at?: string
+          email?: string | null
           id: string
           role?: string
+          status?: string
           username?: string | null
         }
         Update: {
           created_at?: string
+          email?: string | null
           id?: string
           role?: string
+          status?: string
           username?: string | null
         }
         Relationships: []
@@ -206,7 +256,13 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      place_bet: {
+        Args: {
+          p_outcome_id: string
+          p_stake: number
+        }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never

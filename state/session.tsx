@@ -1,5 +1,5 @@
 import { createContext, use, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { User } from '@supabase/supabase-js';
+import { AuthRetryableFetchError, type User } from '@supabase/supabase-js';
 
 import { supabase } from '@/lib/supabase';
 import { UserRole } from '@/types';
@@ -93,9 +93,42 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const loadId = useRef(0);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setUser(data.session?.user ?? null);
-      setIsLoadingUser(false);
+    let isMounted = true;
+
+    // getUser, not getSession: getSession only reads the token out of local
+    // storage and never asks the server whether it is still good. A token that
+    // outlives its account -- the database was reset, the user deleted, the
+    // session revoked -- still looks valid, so the app booted straight into the
+    // signed-in UI instead of the login screen.
+    supabase.auth.getUser().then(async ({ data, error }) => {
+      if (!isMounted) {
+        return;
+      }
+
+      if (!error) {
+        setUser(data.user);
+        setIsLoadingUser(false);
+        return;
+      }
+
+      // Being offline is not evidence the session is bad. Fall back to the
+      // stored one rather than signing someone out for losing signal.
+      if (error instanceof AuthRetryableFetchError) {
+        const { data: stored } = await supabase.auth.getSession();
+        if (isMounted) {
+          setUser(stored.session?.user ?? null);
+          setIsLoadingUser(false);
+        }
+        return;
+      }
+
+      // The server rejected the token, so drop it locally. Without this the
+      // stale token stays in storage and every launch repeats this dance.
+      await supabase.auth.signOut({ scope: 'local' });
+      if (isMounted) {
+        setUser(null);
+        setIsLoadingUser(false);
+      }
     });
 
     // Supabase warns against awaiting other Supabase calls inside this
@@ -106,6 +139,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     });
 
     return () => {
+      isMounted = false;
       authListener.subscription.unsubscribe();
     };
   }, []);

@@ -1,16 +1,27 @@
-import { FlatList, View } from 'react-native';
+import { ActivityIndicator, FlatList, View } from 'react-native';
+import { useEffect, useState } from 'react';
 
 import { AdminFilter, AdminSearch, AdminStatus } from '@/components/admin/admin-components';
 import { ThemedText } from '@/components/ui/themed-text';
-import { adminHistory } from '@/data/mock-admin';
+import { fetchAdminHistory } from '@/lib/data';
 import { colors, spacing } from '@/theme';
+import { AdminAction } from '@/types';
 
 export default function AdminHistoryScreen() {
+  const [history, setHistory] = useState<AdminAction[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    void fetchAdminHistory()
+      .then(setHistory)
+      .finally(() => setIsLoading(false));
+  }, []);
+
   return (
     <FlatList
       contentInsetAdjustmentBehavior="automatic"
       contentContainerStyle={{ gap: spacing.md, padding: spacing.lg, paddingBottom: spacing.xxxl }}
-      data={adminHistory}
+      data={history}
       keyExtractor={(item) => item.id}
       ListHeaderComponent={
         <View style={{ gap: spacing.md }}>
@@ -23,6 +34,13 @@ export default function AdminHistoryScreen() {
             <AdminFilter>Credits</AdminFilter>
           </View>
         </View>
+      }
+      ListEmptyComponent={
+        isLoading ? (
+          <ActivityIndicator color={colors.accent} />
+        ) : (
+          <ThemedText variant="subhead">No admin actions yet.</ThemedText>
+        )
       }
       renderItem={({ item }) => (
         <View style={{ gap: spacing.sm, padding: spacing.lg, backgroundColor: colors.surface, borderRadius: 16, borderCurve: 'continuous' }}>

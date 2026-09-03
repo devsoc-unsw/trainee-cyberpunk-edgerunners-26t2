@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { router } from 'expo-router';
 import { View } from 'react-native';
 
-import { FormField, PrimaryButton } from '@/components/ui/form';
+import { PasswordField, PrimaryButton } from '@/components/ui/form';
 import { Screen } from '@/components/ui/screen';
 import { ThemedText } from '@/components/ui/themed-text';
 import { supabase } from '@/lib/supabase';
@@ -85,32 +85,29 @@ export default function ChangePasswordScreen() {
       </View>
 
       <View style={{ gap: spacing.md }}>
-        <FormField
+        <PasswordField
           label="Current password"
           autoCapitalize="none"
           autoComplete="current-password"
-          secureTextEntry
           textContentType="password"
           placeholder="Current password"
           value={currentPassword}
           onChangeText={setCurrentPassword}
         />
-        <FormField
+        <PasswordField
           label="New password"
           autoCapitalize="none"
           autoComplete="new-password"
-          secureTextEntry
           textContentType="newPassword"
           hint={`At least ${MIN_PASSWORD_LENGTH} characters.`}
           placeholder="New password"
           value={newPassword}
           onChangeText={setNewPassword}
         />
-        <FormField
+        <PasswordField
           label="Confirm new password"
           autoCapitalize="none"
           autoComplete="new-password"
-          secureTextEntry
           textContentType="newPassword"
           placeholder="New password again"
           returnKeyType="done"

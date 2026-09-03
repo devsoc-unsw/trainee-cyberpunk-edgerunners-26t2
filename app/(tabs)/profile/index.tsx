@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
-import { router } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
 import { ActivityIndicator, RefreshControl, View } from 'react-native';
 
 import { AdminSectionLabel, AdminStatus } from '@/components/admin/admin-components';
@@ -68,12 +68,16 @@ export default function ProfileScreen() {
     []
   );
 
-  useEffect(() => {
-    if (!profileId) {
-      return;
-    }
-    loadStats();
-  }, [profileId, loadStats]);
+  // On focus, not on mount: the tab stays mounted and profileId never changes,
+  // so a prediction placed elsewhere left this count showing the old total.
+  useFocusEffect(
+    useCallback(() => {
+      if (!profileId) {
+        return;
+      }
+      void loadStats();
+    }, [profileId, loadStats])
+  );
 
   const handleRefresh = async () => {
     setIsRefreshing(true);

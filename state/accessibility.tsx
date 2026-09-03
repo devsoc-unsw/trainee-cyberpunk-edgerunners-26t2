@@ -63,6 +63,27 @@ function parsePreferences(raw: string | null): AccessibilityPreferences | null {
   }
 }
 
+/**
+ * Reads one of the OS accessibility flags, treating any platform gap as "off".
+ *
+ * The existence check is the point: `isBoldTextEnabled` is iOS-only, and on
+ * other platforms it is not merely a promise that rejects, it is undefined. A
+ * bare `.catch()` never gets the chance to attach, so calling it directly threw
+ * a TypeError and took the whole provider down at launch.
+ */
+async function readSystemFlag(flag: 'isReduceMotionEnabled' | 'isBoldTextEnabled') {
+  const read = AccessibilityInfo[flag];
+  if (typeof read !== 'function') {
+    return false;
+  }
+
+  try {
+    return await read.call(AccessibilityInfo);
+  } catch {
+    return false;
+  }
+}
+
 export function AccessibilityProvider({ children }: { children: React.ReactNode }) {
   const [preferences, setPreferences] = useState(DEFAULT_PREFERENCES);
 
@@ -73,9 +94,17 @@ export function AccessibilityProvider({ children }: { children: React.ReactNode 
     let cancelled = false;
 
     const load = async () => {
-      const stored = parsePreferences(
-        await SecureStore.getItemAsync(STORAGE_KEY).catch(() => null)
-      );
+      // try/catch rather than .catch(): on a platform without SecureStore this
+      // throws rather than rejecting, and an unhandled throw here would leave
+      // the app stuck on defaults with no preferences at all.
+      let raw: string | null = null;
+      try {
+        raw = await SecureStore.getItemAsync(STORAGE_KEY);
+      } catch {
+        raw = null;
+      }
+
+      const stored = parsePreferences(raw);
       if (stored) {
         if (!cancelled) {
           setPreferences(stored);
@@ -83,11 +112,9 @@ export function AccessibilityProvider({ children }: { children: React.ReactNode 
         return;
       }
 
-      // isBoldTextEnabled is iOS-only; treat any platform gap as "off" rather
-      // than losing the whole seed.
       const [reduceMotion, boldText] = await Promise.all([
-        AccessibilityInfo.isReduceMotionEnabled().catch(() => false),
-        AccessibilityInfo.isBoldTextEnabled().catch(() => false),
+        readSystemFlag('isReduceMotionEnabled'),
+        readSystemFlag('isBoldTextEnabled'),
       ]);
       if (!cancelled) {
         setPreferences({ ...DEFAULT_PREFERENCES, reduceMotion, boldText });
@@ -109,8 +136,13 @@ export function AccessibilityProvider({ children }: { children: React.ReactNode 
         setPreferences((current) => {
           const next = { ...current, [key]: nextValue };
           // Write through rather than await: the toggle should feel instant,
-          // and a failed write only costs this one change.
-          SecureStore.setItemAsync(STORAGE_KEY, JSON.stringify(next)).catch(() => {});
+          // and a failed write only costs this one change. Wrapped because a
+          // throw here would escape from inside a state updater.
+          try {
+            SecureStore.setItemAsync(STORAGE_KEY, JSON.stringify(next)).catch(() => {});
+          } catch {
+            // Preference is still applied in memory for this session.
+          }
           return next;
         });
       },

@@ -41,6 +41,31 @@ supabase login
 supabase link       # Then select cyberpunk2077 as the project to link to
 supabase db pull    # Pull changes made by other people
 ```
+
+### App connection
+
+Create `.env` from `.env.example` and add the Supabase project URL and publishable/anon key:
+
+```env
+EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+```
+
+The app only uses these public client variables. Never put a `service_role`, secret key, database password, or other private credential in `.env` or client code. Apply the migrations and deploy the authenticated betting function before testing the app:
+
+```bash
+supabase db push
+supabase functions deploy place_bet
+```
+
+To enable the existing admin screens for a user, assign the role from a trusted Supabase SQL editor or server-side process:
+
+```sql
+update public.profiles
+set role = 'ADMIN'
+where email = 'admin@unsw.edu.au';
+```
+
 Running locally
 ```
 supabase start

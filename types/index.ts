@@ -12,6 +12,12 @@ export type User = {
   role: UserRole;
 };
 
+export type MarketOutcome = {
+  id: string;
+  name: Outcome;
+  pool: number;
+};
+
 export type Market = {
   id: string;
   title: string;
@@ -21,6 +27,7 @@ export type Market = {
   closesAt: string;
   resolutionCriteria: string;
   yesProbability: number;
+  outcomes?: MarketOutcome[];
 };
 
 export type Position = {
@@ -31,6 +38,8 @@ export type Position = {
   stake: number;
   potentialPayout: number;
   status: PositionStatus;
+  marketTitle?: string;
+  placedAt?: string;
 };
 
 export type AccountStatus = 'ACTIVE' | 'SUSPENDED';
@@ -50,7 +59,7 @@ export type AdminBet = Position & {
 export type AdminAction = {
   id: string;
   adminName: string;
-  action: 'ODDS_OVERRIDE' | 'BET_REFUNDED' | 'MARKET_VOIDED' | 'USER_SUSPENDED' | 'CREDIT_ADJUSTMENT';
+  action: 'MARKET_CREATED' | 'MARKET_UPDATED' | 'ODDS_OVERRIDE' | 'BET_REFUNDED' | 'MARKET_VOIDED' | 'ROLE_UPDATED' | 'USER_SUSPENDED' | 'CREDIT_ADJUSTMENT';
   target: string;
   summary: string;
   reason: string;

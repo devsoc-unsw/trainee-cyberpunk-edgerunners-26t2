@@ -42,7 +42,7 @@ export default function ChooseUsernameScreen() {
         <ThemedText variant="largeTitle" accessibilityRole="header">
           What should we call you?
         </ThemedText>
-        <ThemedText variant="subhead">Your username will be publicly displayed</ThemedText>
+        <ThemedText variant="subhead">This name will be publicly displayed</ThemedText>
       </View>
 
       <FormField
