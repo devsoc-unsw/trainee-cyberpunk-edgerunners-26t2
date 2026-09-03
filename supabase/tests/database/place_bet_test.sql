@@ -86,7 +86,7 @@ set local request.jwt.claim.sub =
 
 select is(
     (
-        select coalesce(sum(delta), 0)::bigint
+        select coalesce(sum(delta), 0)
         from public.ledger
         where profile_id = '90000000-0000-0000-0000-000000000099'
     ),
@@ -108,7 +108,7 @@ select throws_ok(
 
 select is(
     (
-        select coalesce(sum(delta), 0)::bigint
+        select coalesce(sum(delta), 0)
         from public.ledger
         where profile_id = '90000000-0000-0000-0000-000000000099'
     ),
@@ -118,7 +118,7 @@ select is(
 
 select is(
     (
-        select coalesce(sum(delta), 0)::bigint
+        select coalesce(sum(delta), 0)
         from public.ledger
         where profile_id = '90000000-0000-0000-0000-000000000099'
     ),
@@ -140,7 +140,7 @@ select throws_ok(
 
 select is(
     (
-        select coalesce(sum(delta), 0)::bigint
+        select coalesce(sum(delta), 0)
         from public.ledger
         where profile_id = '90000000-0000-0000-0000-000000000099'
     ),
@@ -150,7 +150,7 @@ select is(
 
 select is(
     (
-        select coalesce(sum(delta), 0)::bigint
+        select coalesce(sum(delta), 0)
         from public.ledger
         where profile_id = '90000000-0000-0000-0000-000000000099'
     ),
@@ -172,7 +172,7 @@ select throws_ok(
 
 select is(
     (
-        select coalesce(sum(delta), 0)::bigint
+        select coalesce(sum(delta), 0)
         from public.ledger
         where profile_id = '90000000-0000-0000-0000-000000000099'
     ),
@@ -182,7 +182,7 @@ select is(
 
 select is(
     (
-        select coalesce(sum(delta), 0)::bigint
+        select coalesce(sum(delta), 0)
         from public.ledger
         where profile_id = '90000000-0000-0000-0000-000000000099'
     ),
@@ -204,7 +204,7 @@ select throws_ok(
 
 select is(
     (
-        select coalesce(sum(delta), 0)::bigint
+        select coalesce(sum(delta), 0)
         from public.ledger
         where profile_id = '90000000-0000-0000-0000-000000000099'
     ),
@@ -224,7 +224,7 @@ select lives_ok(
 
 select is(
     (
-        select coalesce(sum(delta), 0)::bigint
+        select coalesce(sum(delta), 0)
         from public.ledger
         where profile_id = '90000000-0000-0000-0000-000000000099'
     ),
@@ -246,7 +246,7 @@ select throws_ok(
 
 select is(
     (
-        select coalesce(sum(delta), 0)::bigint
+        select coalesce(sum(delta), 0)
         from public.ledger
         where profile_id = '90000000-0000-0000-0000-000000000099'
     ),
