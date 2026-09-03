@@ -1,16 +1,33 @@
 import { useLocalSearchParams } from 'expo-router';
-import { Alert, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, View } from 'react-native';
 
 import { AdminActionButton, AdminRow, AdminSectionLabel, AdminStatus } from '@/components/admin/admin-components';
 import { PlaceholderState } from '@/components/ui/placeholder-state';
 import { Screen } from '@/components/ui/screen';
 import { ThemedText } from '@/components/ui/themed-text';
-import { adminBets } from '@/data/mock-admin';
+import { fetchAdminBets } from '@/lib/data';
 import { colors, spacing } from '@/theme';
+import { AdminBet } from '@/types';
 
 export default function AdminBetDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const bet = adminBets.find((item) => item.id === id);
+  const [bet, setBet] = useState<AdminBet | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!id) {
+      return;
+    }
+
+    void fetchAdminBets()
+      .then((bets) => setBet(bets.find((item) => item.id === id) ?? null))
+      .finally(() => setIsLoading(false));
+  }, [id]);
+
+  if (isLoading) {
+    return <Screen centered><ActivityIndicator color={colors.accent} /></Screen>;
+  }
 
   if (!bet) {
     return <Screen centered><PlaceholderState title="Bet not found" description="Check the bet ID and try again." /></Screen>;

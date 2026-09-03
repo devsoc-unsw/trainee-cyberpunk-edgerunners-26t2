@@ -1,9 +1,8 @@
-import { useDemoSession } from '@/state/demo-session';
+import { useSession } from '@/state/session';
 
 export function useBalance() {
-    const { session, setBalance } = useDemoSession();
-    const balance = session?.balance ?? null;
-    const refresh = async () => {};
+    const { profile, setBalance, refresh } = useSession();
+    const balance = profile?.balance ?? null;
 
-    return {balance, setBalance, refresh};
+    return { balance, setBalance, refresh };
 }

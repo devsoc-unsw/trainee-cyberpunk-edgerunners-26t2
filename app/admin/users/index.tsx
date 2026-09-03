@@ -1,17 +1,28 @@
 import { router } from 'expo-router';
-import { FlatList, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, FlatList, View } from 'react-native';
 
 import { AdminFilter, AdminSearch, AdminStatus } from '@/components/admin/admin-components';
 import { ThemedText } from '@/components/ui/themed-text';
-import { adminUsers } from '@/data/mock-admin';
+import { fetchAdminUsers } from '@/lib/data';
 import { colors, spacing } from '@/theme';
+import { AdminUser } from '@/types';
 
 export default function AdminUsersScreen() {
+  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    void fetchAdminUsers()
+      .then(setUsers)
+      .finally(() => setIsLoading(false));
+  }, []);
+
   return (
     <FlatList
       contentInsetAdjustmentBehavior="automatic"
       contentContainerStyle={{ gap: spacing.md, padding: spacing.lg, paddingBottom: spacing.xxxl }}
-      data={adminUsers}
+      data={users}
       keyExtractor={(item) => item.id}
       ListHeaderComponent={
         <View style={{ gap: spacing.md }}>
@@ -24,6 +35,7 @@ export default function AdminUsersScreen() {
           </View>
         </View>
       }
+      ListEmptyComponent={isLoading ? <ActivityIndicator color={colors.accent} /> : null}
       renderItem={({ item }) => (
         <View style={{ gap: spacing.sm, padding: spacing.lg, backgroundColor: colors.surface, borderRadius: 16, borderCurve: 'continuous' }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>

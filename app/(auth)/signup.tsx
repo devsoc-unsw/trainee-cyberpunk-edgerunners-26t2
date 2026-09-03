@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { router } from 'expo-router';
-import { Pressable, TextInput, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
+import { FormField, PasswordField } from '@/components/ui/form';
 import { Screen } from '@/components/ui/screen';
 import { ThemedText } from '@/components/ui/themed-text';
 import { colors, radius, spacing } from '@/theme';
@@ -46,6 +47,14 @@ export default function SignupScreen() {
       return;
     }
 
+    // When email confirmations are switched off, sign-up returns a live
+    // session and there is nothing to verify -- go straight to naming
+    // yourself instead of waiting for an email that will never arrive.
+    if (data.session) {
+      router.replace('/onboarding/username');
+      return;
+    }
+
     // Update sent state
     setVerificationSent(true);
   };
@@ -68,50 +77,27 @@ export default function SignupScreen() {
       </View>
 
       <View style={{ gap: spacing.md }}>
-        <View style={{ gap: spacing.sm }}>
-          <ThemedText variant="subhead">Email</ThemedText>
-          <TextInput
-            autoCapitalize="none"
-            autoComplete="email"
-            keyboardType="email-address"
-            placeholder="name@unsw.edu.au"
-            placeholderTextColor={colors.inputPlaceholder}
-            style={{
-              width: '100%',
-              height: 52,
-              paddingHorizontal: spacing.lg,
-              backgroundColor: colors.surface,
-              borderColor: colors.border,
-              borderWidth: 1,
-              borderRadius: radius.md,
-              color: colors.inputText,
-              fontSize: 16,
-            }}
-            onChangeText={setEmail}
-          />
-        </View>
+        <FormField
+          label="Email"
+          autoCapitalize="none"
+          autoComplete="email"
+          keyboardType="email-address"
+          textContentType="emailAddress"
+          placeholder="name@unsw.edu.au"
+          value={email}
+          onChangeText={setEmail}
+        />
 
-        <View style={{ gap: spacing.sm }}>
-          <ThemedText variant="subhead">Password</ThemedText>
-          <TextInput
-            autoComplete="password-new"
-            placeholder="Password"
-            placeholderTextColor={colors.inputPlaceholder}
-            secureTextEntry
-            style={{
-              width: '100%',
-              height: 52,
-              paddingHorizontal: spacing.lg,
-              backgroundColor: colors.surface,
-              borderColor: colors.border,
-              borderWidth: 1,
-              borderRadius: radius.md,
-              color: colors.inputText,
-              fontSize: 16,
-            }}
-            onChangeText={setPassword}
-          />
-        </View>
+        <PasswordField
+          label="Password"
+          autoComplete="password-new"
+          textContentType="newPassword"
+          placeholder="Password"
+          returnKeyType="done"
+          value={password}
+          onChangeText={setPassword}
+          onSubmitEditing={handleCreateAccount}
+        />
 
         {errorMessage ? (
           <ThemedText style={{ color: colors.accent }}>{errorMessage}</ThemedText>
