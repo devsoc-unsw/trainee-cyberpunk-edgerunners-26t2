@@ -1,12 +1,12 @@
 create extension if not exists pgcrypto;
 
-create table profiles (
+create table if not exists profiles (
     id uuid primary key references auth.users(id) on delete cascade,
     username text unique,
     created_at timestamptz not null default now()
 );
 
-create table markets (
+create table if not exists markets (
     id uuid primary key default gen_random_uuid(),
     title text not null,
     category text not null,
@@ -17,7 +17,7 @@ create table markets (
     check (status in ('open', 'closed', 'resolved'))
 );
 
-create table outcomes (
+create table if not exists outcomes (
     id uuid primary key default gen_random_uuid(),
     market_id uuid not null references markets(id) on delete cascade,
     name text not null,
@@ -28,7 +28,7 @@ create table outcomes (
     unique (market_id, name)
 );
 
-create table positions (
+create table if not exists positions (
     id uuid primary key default gen_random_uuid(),
     profile_id uuid not null references profiles(id) on delete cascade,
     market_id uuid not null references markets(id) on delete cascade,
@@ -41,7 +41,7 @@ create table positions (
     unique (profile_id, market_id, outcome_id)
 );
 
-create table ledger (
+create table if not exists ledger (
     id uuid primary key default gen_random_uuid(),
     profile_id uuid not null references profiles(id) on delete cascade,
     delta bigint not null,
@@ -60,19 +60,19 @@ create table ledger (
     )
 );
 
-create index ledger_profile_id_created_at_idx
+create index if not exists ledger_profile_id_created_at_idx
 on ledger(profile_id, created_at desc);
 
-create index outcomes_market_id_idx
+create index if not exists outcomes_market_id_idx
 on outcomes(market_id);
 
-create index positions_profile_id_idx
+create index if not exists positions_profile_id_idx
 on positions(profile_id);
 
-create index positions_market_id_idx
+create index if not exists positions_market_id_idx
 on positions(market_id);
 
-create function prevent_ledger_changes()
+create or replace function prevent_ledger_changes()
 returns trigger
 language plpgsql
 as $$
@@ -81,17 +81,21 @@ begin
 end;
 $$;
 
+drop trigger if exists ledger_no_update on ledger;
+
 create trigger ledger_no_update
 before update on ledger
 for each row
 execute function prevent_ledger_changes();
+
+drop trigger if exists ledger_no_delete on ledger;
 
 create trigger ledger_no_delete
 before delete on ledger
 for each row
 execute function prevent_ledger_changes();
 
-create view profile_balances as
+create or replace view profile_balances as
 select
     profiles.id as profile_id,
     coalesce(sum(ledger.delta), 0) as balance

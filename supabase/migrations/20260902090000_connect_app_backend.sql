@@ -78,10 +78,15 @@ after insert on auth.users
 for each row
 execute function public.handle_new_user();
 
-insert into public.profiles (id, username, email)
+-- Never the username: an email fails the profiles_username_format check, and
+-- `on conflict do update` is no protection because check constraints are
+-- evaluated against the proposed row before the conflict is resolved. Setting
+-- it here aborted this whole migration on any database that already had an
+-- account -- which is every deployed one, though never a freshly reset local
+-- one, so it only ever showed up against a real project.
+insert into public.profiles (id, email)
 select
     auth_users.id,
-    coalesce(nullif(auth_users.email, ''), auth_users.id::text),
     auth_users.email
 from auth.users as auth_users
 on conflict (id) do update
@@ -119,17 +124,23 @@ grant execute on function public.is_admin() to authenticated;
 drop policy if exists "Users can read profiles" on public.profiles;
 drop policy if exists "Users can update their own profile" on public.profiles;
 
+drop policy if exists "Users can read their own profile" on public.profiles;
+
 create policy "Users can read their own profile"
 on public.profiles
 for select
 to authenticated
 using ((select auth.uid()) = id);
 
+drop policy if exists "Admins can read profiles" on public.profiles;
+
 create policy "Admins can read profiles"
 on public.profiles
 for select
 to authenticated
 using ((select public.is_admin()));
+
+drop policy if exists "Admins can update profiles" on public.profiles;
 
 create policy "Admins can update profiles"
 on public.profiles
@@ -144,11 +155,15 @@ grant update on table public.profiles to authenticated;
 grant insert, update, delete on table public.markets to authenticated;
 grant insert, update, delete on table public.outcomes to authenticated;
 
+drop policy if exists "Admins can insert markets" on public.markets;
+
 create policy "Admins can insert markets"
 on public.markets
 for insert
 to authenticated
 with check ((select public.is_admin()));
+
+drop policy if exists "Admins can update markets" on public.markets;
 
 create policy "Admins can update markets"
 on public.markets
@@ -157,17 +172,23 @@ to authenticated
 using ((select public.is_admin()))
 with check ((select public.is_admin()));
 
+drop policy if exists "Admins can delete markets" on public.markets;
+
 create policy "Admins can delete markets"
 on public.markets
 for delete
 to authenticated
 using ((select public.is_admin()));
 
+drop policy if exists "Admins can insert outcomes" on public.outcomes;
+
 create policy "Admins can insert outcomes"
 on public.outcomes
 for insert
 to authenticated
 with check ((select public.is_admin()));
+
+drop policy if exists "Admins can update outcomes" on public.outcomes;
 
 create policy "Admins can update outcomes"
 on public.outcomes
@@ -176,17 +197,23 @@ to authenticated
 using ((select public.is_admin()))
 with check ((select public.is_admin()));
 
+drop policy if exists "Admins can delete outcomes" on public.outcomes;
+
 create policy "Admins can delete outcomes"
 on public.outcomes
 for delete
 to authenticated
 using ((select public.is_admin()));
 
+drop policy if exists "Admins can read positions" on public.positions;
+
 create policy "Admins can read positions"
 on public.positions
 for select
 to authenticated
 using ((select public.is_admin()));
+
+drop policy if exists "Admins can read ledger" on public.ledger;
 
 create policy "Admins can read ledger"
 on public.ledger
@@ -223,11 +250,15 @@ alter table public.admin_actions enable row level security;
 revoke all on table public.admin_actions from anon, authenticated;
 grant select, insert on table public.admin_actions to authenticated;
 
+drop policy if exists "Admins can read admin actions" on public.admin_actions;
+
 create policy "Admins can read admin actions"
 on public.admin_actions
 for select
 to authenticated
 using ((select public.is_admin()));
+
+drop policy if exists "Admins can create admin actions" on public.admin_actions;
 
 create policy "Admins can create admin actions"
 on public.admin_actions
