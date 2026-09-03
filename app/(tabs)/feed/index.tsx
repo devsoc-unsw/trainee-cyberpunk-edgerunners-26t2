@@ -7,6 +7,8 @@ import { colors, radius, spacing, typography } from '@/theme';
 import { Market } from '@/types';
 import { BalanceHeader } from '@/components/ui/balance-header';
 
+import { BetSheet } from '@/components/ui/bet-sheet';
+
 type FeedItem = {
   key: string;
   market: Market;
@@ -168,6 +170,7 @@ export default function FeedScreen() {
           contentInsetAdjustmentBehavior="automatic"
         />
       ) : null}
+      <BetSheet market={mockMarkets[0]} outcome="YES" />
     </View>
   );
 }
