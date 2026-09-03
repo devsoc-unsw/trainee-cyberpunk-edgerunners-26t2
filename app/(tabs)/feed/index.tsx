@@ -236,7 +236,13 @@ export default function FeedScreen() {
           initialNumToRender={2}
           maxToRenderPerBatch={3}
           windowSize={3}
-          contentInsetAdjustmentBehavior="automatic"
+          // "never", not "automatic": this list pages by whole screens, and
+          // snapToInterval/getItemLayout are both measured from the container.
+          // An automatic safe-area inset shifts the content down without
+          // changing those measurements, so the first page opened below its
+          // start and every snap was off by the inset. The page style already
+          // pads for the notch and the balance header.
+          contentInsetAdjustmentBehavior="never"
         />
       ) : null}
       {activeBet && (
