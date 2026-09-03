@@ -67,6 +67,29 @@ select 'profiles whose username is an email address',
        (select count(*)::text from public.profiles where username like '%@%')
 
 union all
+-- If either of these is false, 20260902090000 rolled back and the
+-- profiles_enforce_privileges trigger from 20260903023213 raises
+-- 42703 "record \"new\" has no field \"status\"" on EVERY profile update.
+select 'profiles.status column exists (migration 20260902 applied)',
+       (exists (
+           select 1 from pg_attribute
+           where attrelid = 'public.profiles'::regclass
+             and attname = 'status' and not attisdropped
+       ))::text
+
+union all
+select 'profiles.email column exists (migration 20260902 applied)',
+       (exists (
+           select 1 from pg_attribute
+           where attrelid = 'public.profiles'::regclass
+             and attname = 'email' and not attisdropped
+       ))::text
+
+union all
+select 'is_admin() function exists',
+       (to_regprocedure('public.is_admin()') is not null)::text
+
+union all
 select 'username column is nullable',
        (select not attnotnull from pg_attribute
         where attrelid = 'public.profiles'::regclass and attname = 'username')::text
