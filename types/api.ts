@@ -165,7 +165,9 @@ export type Database = {
           id: string
           market_id: string
           outcome_id: string
+          payout: number | null
           profile_id: string
+          settled_at: string | null
           stake: number
           updated_at: string
         }
@@ -174,7 +176,9 @@ export type Database = {
           id?: string
           market_id: string
           outcome_id: string
+          payout?: number | null
           profile_id: string
+          settled_at?: string | null
           stake: number
           updated_at?: string
         }
@@ -183,7 +187,9 @@ export type Database = {
           id?: string
           market_id?: string
           outcome_id?: string
+          payout?: number | null
           profile_id?: string
+          settled_at?: string | null
           stake?: number
           updated_at?: string
         }
@@ -256,11 +262,19 @@ export type Database = {
       }
     }
     Functions: {
+      get_leaderboard: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          is_current_user: boolean
+          profile_id: string
+          rank: number
+          settled_count: number
+          settled_profit: number
+          username: string
+        }[]
+      }
       place_bet: {
-        Args: {
-          p_outcome_id: string
-          p_stake: number
-        }
+        Args: { p_outcome_id: string; p_stake: number }
         Returns: Json
       }
     }
