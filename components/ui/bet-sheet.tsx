@@ -9,21 +9,22 @@ import {
   TextInput,
   View,
   Pressable,
+  useWindowDimensions,
 } from "react-native";
-import { colors, spacing, radius, typography, motion } from "@/theme";
-import { useWindowDimensions } from "react-native";
+import { colors, spacing, radius, typography } from "@/theme";
 import { Market, Outcome } from "@/types";
 import { useEffect, useState } from "react";
 
 type Props = {
   market: Market;
   outcome: Outcome;
+  onClose: () => void;
 };
 
 export function BetSheet(props: Props) {
   const { height } = useWindowDimensions();
   const sheetHeight = height * 0.4;
-  const { market, outcome } = props;
+  const { market, outcome, onClose } = props;
   const p =
     outcome === "YES" ? market.yesProbability : 1 - market.yesProbability;
   const [stake, setStake] = useState("");
@@ -32,17 +33,20 @@ export function BetSheet(props: Props) {
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   const handleConfirm = () => {
-    Alert.alert('Confirm Bet', `Betting ${stake} credits on ${outcome}`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Confirm', onPress: () => {}},
+    Alert.alert("Confirm Bet", `Betting ${stake} credits on ${outcome}`, [
+      { text: "Cancel", style: "cancel" },
+      { text: "Confirm", onPress: () => {} },
     ]);
   };
 
   useEffect(() => {
-    const show = Keyboard.addListener('keyboardWillShow', (e: KeyboardEvent) => {
-      setKeyboardHeight(e.endCoordinates.height);
-    });
-    const hide = Keyboard.addListener('keyboardWillHide', () => {
+    const show = Keyboard.addListener(
+      "keyboardWillShow",
+      (e: KeyboardEvent) => {
+        setKeyboardHeight(e.endCoordinates.height);
+      },
+    );
+    const hide = Keyboard.addListener("keyboardWillHide", () => {
       setKeyboardHeight(0);
     });
     return () => {
@@ -54,7 +58,12 @@ export function BetSheet(props: Props) {
   return (
     <Modal transparent animationType="none" visible>
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={[styles.sheet, { height: sheetHeight, bottom: keyboardHeight }]}>
+        <View
+          style={[
+            styles.sheet,
+            { height: sheetHeight, bottom: keyboardHeight },
+          ]}
+        >
           <Text style={styles.title}>
             {market.title} Betting{" "}
             <Text style={{ color: outcome === "YES" ? colors.yes : colors.no }}>
@@ -69,7 +78,9 @@ export function BetSheet(props: Props) {
             keyboardType="number-pad"
             style={styles.inputField}
           />
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+          <View
+            style={{ flexDirection: "row", justifyContent: "space-between" }}
+          >
             <Text style={styles.heading}>Potential Payout</Text>
             <Text style={styles.heading}>
               <Text style={{ color: colors.yes }}>{payout} </Text>
@@ -77,7 +88,10 @@ export function BetSheet(props: Props) {
             </Text>
           </View>
           <Pressable onPress={handleConfirm} style={styles.confirmBtn}>
-            <Text style={styles.confirmText}>Confirm Bet</Text>
+            <Text style={styles.btnText}>Confirm Bet</Text>
+          </Pressable>
+          <Pressable onPress={onClose} style={styles.cancelBtn}>
+            <Text style={styles.btnText}>Cancel</Text>
           </Pressable>
         </View>
       </TouchableWithoutFeedback>
@@ -113,17 +127,24 @@ const styles = StyleSheet.create({
     height: 60,
     textAlign: "center",
     color: colors.muted,
-    fontSize: 22
+    fontSize: 22,
   },
   confirmBtn: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     backgroundColor: colors.yes,
     borderRadius: radius.sm,
     paddingVertical: spacing.xs,
   },
-  confirmText: {
+  cancelBtn: {
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.no,
+    borderRadius: radius.sm,
+    paddingVertical: spacing.xs,
+  },
+  btnText: {
     ...typography.headline,
     paddingVertical: 10,
-  }
+  },
 });

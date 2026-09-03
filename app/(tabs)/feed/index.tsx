@@ -1,24 +1,40 @@
-import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, LayoutChangeEvent, Platform, StyleSheet, Text, View } from 'react-native';
-import { LineChart } from 'react-native-gifted-charts';
+import { useCallback, useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  LayoutChangeEvent,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { LineChart } from "react-native-gifted-charts";
 
-import { fetchMarkets } from '@/lib/data';
-import { colors, radius, spacing, typography } from '@/theme';
-import { Market } from '@/types';
-import { BalanceHeader } from '@/components/ui/balance-header';
+import { fetchMarkets } from "@/lib/data";
+import { colors, radius, spacing, typography } from "@/theme";
+import { Market, Outcome } from "@/types";
+import { BalanceHeader } from "@/components/ui/balance-header";
 
-import { BetSheet } from '@/components/ui/bet-sheet';
+import { BetSheet } from "@/components/ui/bet-sheet";
 
 type FeedItem = {
   key: string;
   market: Market;
 };
 
+type MarketPageProps = {
+  item: FeedItem;
+  height: number;
+  width: number;
+  onSelectOutcome: (market: Market, outcome: Outcome) => void;
+};
+
 const probabilityHistory: Record<string, number[]> = {
-  '1': [18, 20, 19, 22, 25, 23, 21, 22, 24],
-  '2': [46, 49, 52, 50, 54, 58, 57, 53, 55],
-  '3': [39, 43, 41, 47, 52, 56, 61, 64, 68],
-  '4': [58, 63, 67, 65, 70, 76, 79, 77, 74],
+  "1": [18, 20, 19, 22, 25, 23, 21, 22, 24],
+  "2": [46, 49, 52, 50, 54, 58, 57, 53, 55],
+  "3": [39, 43, 41, 47, 52, 56, 61, 64, 68],
+  "4": [58, 63, 67, 65, 70, 76, 79, 77, 74],
 };
 
 function getProbabilityHistory(market: Market) {
@@ -27,7 +43,8 @@ function getProbabilityHistory(market: Market) {
   return probabilityHistory[market.id] ?? [currentProbability];
 }
 
-function MarketPage({ item, height, width }: { item: FeedItem; height: number; width: number }) {
+function MarketPage(props: MarketPageProps) {
+  const { item, height, width, onSelectOutcome } = props;
   const yes = Math.round(item.market.yesProbability * 100);
   const history = getProbabilityHistory(item.market);
   const change = yes - history[0];
@@ -36,7 +53,6 @@ function MarketPage({ item, height, width }: { item: FeedItem; height: number; w
 
   return (
     <View style={[styles.page, { height }]}>
-
       <View style={styles.chartSection} pointerEvents="none">
         <View style={styles.priceRow}>
           <View>
@@ -44,16 +60,24 @@ function MarketPage({ item, height, width }: { item: FeedItem; height: number; w
             <View style={styles.priceValueRow}>
               <Text style={styles.priceValue}>{yes}¢</Text>
               <Text style={styles.priceChange}>
-                {change >= 0 ? '+' : ''}
+                {change >= 0 ? "+" : ""}
                 {change}¢
               </Text>
             </View>
           </View>
 
           <View style={styles.ranges}>
-            {['1H', '1D', '1W', 'ALL'].map((range) => (
-              <View key={range} style={[styles.range, range === '1W' && styles.activeRange]}>
-                <Text style={[styles.rangeLabel, range === '1W' && styles.activeRangeLabel]}>
+            {["1H", "1D", "1W", "ALL"].map((range) => (
+              <View
+                key={range}
+                style={[styles.range, range === "1W" && styles.activeRange]}
+              >
+                <Text
+                  style={[
+                    styles.rangeLabel,
+                    range === "1W" && styles.activeRangeLabel,
+                  ]}
+                >
                   {range}
                 </Text>
               </View>
@@ -103,14 +127,24 @@ function MarketPage({ item, height, width }: { item: FeedItem; height: number; w
       </View>
 
       <View style={styles.outcomes}>
-        <View style={[styles.outcome, styles.yesOutcome]}>
+        <Pressable
+          onPress={() => {
+            onSelectOutcome(item.market, "YES");
+          }}
+          style={[styles.outcome, styles.yesOutcome]}
+        >
           <Text style={styles.outcomeLabel}>YES</Text>
           <Text style={styles.yesValue}>{yes}%</Text>
-        </View>
-        <View style={[styles.outcome, styles.noOutcome]}>
+        </Pressable>
+        <Pressable
+          onPress={() => {
+            onSelectOutcome(item.market, "NO");
+          }}
+          style={[styles.outcome, styles.noOutcome]}
+        >
           <Text style={styles.outcomeLabel}>NO</Text>
           <Text style={styles.noValue}>{100 - yes}%</Text>
-        </View>
+        </Pressable>
       </View>
     </View>
   );
@@ -121,6 +155,10 @@ export default function FeedScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [viewport, setViewport] = useState({ height: 0, width: 0 });
+  const [activeBet, setActiveBet] = useState<{
+    market: Market;
+    outcome: Outcome;
+  } | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -133,7 +171,7 @@ export default function FeedScreen() {
       })
       .catch(() => {
         if (isMounted) {
-          setErrorMessage('Markets could not be loaded. Please try again.');
+          setErrorMessage("Markets could not be loaded. Please try again.");
         }
       })
       .finally(() => {
@@ -159,7 +197,7 @@ export default function FeedScreen() {
 
   return (
     <View style={styles.container} onLayout={handleLayout}>
-      <View style={styles.balanceHeader} pointerEvents='box-none'>
+      <View style={styles.balanceHeader} pointerEvents="box-none">
         <BalanceHeader />
       </View>
       {isLoading ? (
@@ -174,7 +212,14 @@ export default function FeedScreen() {
         <FlatList
           data={items}
           renderItem={({ item }) => (
-            <MarketPage item={item} height={viewport.height} width={viewport.width} />
+            <MarketPage
+              item={item}
+              height={viewport.height}
+              width={viewport.width}
+              onSelectOutcome={(market, outcome) =>
+                setActiveBet({ market, outcome })
+              }
+            />
           )}
           keyExtractor={(item) => item.key}
           getItemLayout={(_, index) => ({
@@ -194,7 +239,13 @@ export default function FeedScreen() {
           contentInsetAdjustmentBehavior="automatic"
         />
       ) : null}
-      <BetSheet market={mockMarkets[0]} outcome="YES" />
+      {activeBet && (
+        <BetSheet
+          market={activeBet.market}
+          outcome={activeBet.outcome}
+          onClose={() => setActiveBet(null)}
+        />
+      )}
     </View>
   );
 }
@@ -228,18 +279,18 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 30,
     lineHeight: 35,
-    fontWeight: '700',
+    fontWeight: "700",
     letterSpacing: -0.4,
   },
   chartSection: {
     flex: 1,
     gap: spacing.sm,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   priceRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
     gap: spacing.lg,
   },
   priceLabel: {
@@ -247,24 +298,24 @@ const styles = StyleSheet.create({
     color: colors.muted,
   },
   priceValueRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
+    flexDirection: "row",
+    alignItems: "baseline",
     gap: spacing.sm,
   },
   priceValue: {
     color: colors.text,
     fontSize: 28,
     lineHeight: 34,
-    fontWeight: '700',
+    fontWeight: "700",
     letterSpacing: -0.4,
   },
   priceChange: {
     ...typography.subhead,
     color: colors.yes,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   ranges: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: spacing.xs,
   },
   range: {
@@ -272,7 +323,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
     borderRadius: radius.full,
-    alignItems: 'center',
+    alignItems: "center",
   },
   activeRange: {
     backgroundColor: colors.surface,
@@ -285,19 +336,19 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   chart: {
-    alignItems: 'center',
-    overflow: 'hidden',
+    alignItems: "center",
+    overflow: "hidden",
   },
   dateRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
   dateLabel: {
     ...typography.caption,
     color: colors.muted,
   },
   outcomes: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: spacing.md,
   },
   outcome: {
@@ -326,18 +377,18 @@ const styles = StyleSheet.create({
     color: colors.no,
   },
   balanceHeader: {
-    position: 'absolute',
+    position: "absolute",
     top: spacing.xxxl,
     left: spacing.xl,
   },
   centeredState: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     padding: spacing.xl,
   },
   stateText: {
     ...typography.subhead,
-    textAlign: 'center',
+    textAlign: "center",
   },
 });
