@@ -11,11 +11,9 @@ type Props = {
 
 export function PlaceholderState({ title, description }: Props) {
   return (
-    <View style={{ gap: spacing.sm, maxWidth: 320 }}>
-      <ThemedText variant="title">{title}</ThemedText>
-      <ThemedText variant="body" style={{ opacity: 0.68 }}>
-        {description}
-      </ThemedText>
+    <View style={{ paddingVertical: spacing.xxl, alignItems: 'center', gap: spacing.sm }}>
+      <ThemedText variant="headline">{title}</ThemedText>
+      <ThemedText variant="subhead">{description}</ThemedText>
     </View>
   );
 }

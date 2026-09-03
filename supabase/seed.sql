@@ -120,6 +120,11 @@ set
     closes_at = excluded.closes_at,
     status = excluded.status;
 
+update public.markets
+set
+    description = coalesce(nullif(description, ''), 'A live prediction market. Make a YES or NO prediction before the market closes.'),
+    resolution_criteria = coalesce(nullif(resolution_criteria, ''), 'Resolves according to the official outcome described in the market question.');
+
 insert into public.outcomes (
     id,
     market_id,
