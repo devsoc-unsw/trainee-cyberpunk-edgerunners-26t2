@@ -19,6 +19,8 @@ grant select on table public.positions to authenticated;
 grant select on table public.ledger to authenticated;
 
 
+drop policy if exists "Users can read profiles" on public.profiles;
+
 create policy "Users can read profiles"
 on public.profiles
 for select
@@ -26,12 +28,16 @@ to authenticated
 using (true);
 
 
+drop policy if exists "Users can create their own profile" on public.profiles;
+
 create policy "Users can create their own profile"
 on public.profiles
 for insert
 to authenticated
 with check ((select auth.uid()) = id);
 
+
+drop policy if exists "Users can update their own profile" on public.profiles;
 
 create policy "Users can update their own profile"
 on public.profiles
@@ -41,12 +47,16 @@ using ((select auth.uid()) = id)
 with check ((select auth.uid()) = id);
 
 
+drop policy if exists "Users can read markets" on public.markets;
+
 create policy "Users can read markets"
 on public.markets
 for select
 to authenticated
 using (true);
 
+
+drop policy if exists "Users can read outcomes" on public.outcomes;
 
 create policy "Users can read outcomes"
 on public.outcomes
@@ -55,12 +65,16 @@ to authenticated
 using (true);
 
 
+drop policy if exists "Users can read their own positions" on public.positions;
+
 create policy "Users can read their own positions"
 on public.positions
 for select
 to authenticated
 using ((select auth.uid()) = profile_id);
 
+
+drop policy if exists "Users can read their own ledger" on public.ledger;
 
 create policy "Users can read their own ledger"
 on public.ledger

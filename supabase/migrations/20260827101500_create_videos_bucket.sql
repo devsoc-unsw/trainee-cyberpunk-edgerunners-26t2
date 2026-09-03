@@ -3,6 +3,8 @@ values ('videos', 'videos', true)
 on conflict (id) do nothing;
 
 
+drop policy if exists "Users can upload videos to their own folder" on storage.objects;
+
 create policy "Users can upload videos to their own folder"
 on storage.objects
 for insert
@@ -12,6 +14,8 @@ with check (
     and (storage.foldername(name))[1] = (select auth.uid())::text
 );
 
+
+drop policy if exists "Users can update their own videos" on storage.objects;
 
 create policy "Users can update their own videos"
 on storage.objects
@@ -27,6 +31,8 @@ with check (
 );
 
 
+drop policy if exists "Users can delete their own videos" on storage.objects;
+
 create policy "Users can delete their own videos"
 on storage.objects
 for delete
@@ -36,6 +42,8 @@ using (
     and (storage.foldername(name))[1] = (select auth.uid())::text
 );
 
+
+drop policy if exists "Anyone can read videos" on storage.objects;
 
 create policy "Anyone can read videos"
 on storage.objects

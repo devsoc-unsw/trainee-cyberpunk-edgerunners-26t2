@@ -13,6 +13,9 @@
 -- Usernames: 3-20 characters, letters, digits and underscores. Null until the
 -- user picks one on the "What should we call you?" screen.
 alter table public.profiles
+drop constraint if exists profiles_username_format;
+
+alter table public.profiles
 add constraint profiles_username_format
 check (username is null or username ~ '^[A-Za-z0-9_]{3,20}$');
 
@@ -20,14 +23,17 @@ check (username is null or username ~ '^[A-Za-z0-9_]{3,20}$');
 -- sensitive unique constraint created with the column, so drop that one
 -- rather than maintain two indexes over the same data.
 alter table public.profiles
-drop constraint profiles_username_key;
+drop constraint if exists profiles_username_key;
 
-create unique index profiles_username_lower_key
+create unique index if not exists profiles_username_lower_key
 on public.profiles (lower(username));
 
 
 alter table public.profiles
-add column role text not null default 'USER';
+add column if not exists role text not null default 'USER';
+
+alter table public.profiles
+drop constraint if exists profiles_role_check;
 
 alter table public.profiles
 add constraint profiles_role_check
@@ -45,7 +51,7 @@ grant update (username) on table public.profiles to authenticated;
 
 -- Give every new auth user a profile and their starting credit in the same
 -- transaction that creates the user, so neither can go missing.
-create function public.handle_new_user()
+create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
 security definer
@@ -68,6 +74,8 @@ begin
     return new;
 end;
 $$;
+
+drop trigger if exists on_auth_user_created on auth.users;
 
 create trigger on_auth_user_created
 after insert on auth.users

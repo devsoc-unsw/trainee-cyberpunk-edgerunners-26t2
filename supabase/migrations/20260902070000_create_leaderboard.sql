@@ -1,6 +1,10 @@
 alter table public.positions
-add column settled_at timestamptz,
-add column payout bigint;
+add column if not exists settled_at timestamptz,
+add column if not exists payout bigint;
+
+alter table public.positions
+drop constraint if exists positions_payout_non_negative,
+drop constraint if exists positions_settlement_complete;
 
 alter table public.positions
 add constraint positions_payout_non_negative
@@ -11,7 +15,7 @@ check (
     or (settled_at is not null and payout is not null)
 );
 
-create index positions_settled_profile_id_idx
+create index if not exists positions_settled_profile_id_idx
 on public.positions(profile_id)
 where settled_at is not null;
 

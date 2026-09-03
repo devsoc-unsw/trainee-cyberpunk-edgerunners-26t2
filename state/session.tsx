@@ -32,6 +32,8 @@ const SessionContext = createContext<SessionContextValue | null>(null);
 const UNIQUE_VIOLATION = '23505';
 /** Postgres check violation: the username breaks the format rule. */
 const CHECK_VIOLATION = '23514';
+/** PostgREST: the statement returned no row where exactly one was required. */
+const NO_ROWS = 'PGRST116';
 
 export class UsernameTakenError extends Error {
   constructor() {
@@ -221,7 +223,18 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           if (error.code === CHECK_VIOLATION) {
             throw new Error('Usernames use 3-20 letters, numbers or underscores.');
           }
-          throw error;
+          // The update matched no row. An UPDATE blocked by row level security
+          // is not an error -- the row is simply invisible -- so this is what a
+          // missing profile row or a missing update policy looks like.
+          if (error.code === NO_ROWS) {
+            throw new Error(
+              'Your profile could not be found to update. Sign out and back in, and if it keeps happening the account is missing its profile row.'
+            );
+          }
+          // PostgREST returns a plain object rather than an Error, so rethrowing
+          // it as-is leaves the screens with nothing but their own fallback
+          // text and hides what the database actually said.
+          throw new Error(error.message || 'Could not save your username.');
         }
 
         updateProfile((current) => ({ ...current, username: data.username }));
