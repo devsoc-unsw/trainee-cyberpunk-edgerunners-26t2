@@ -287,7 +287,7 @@ export async function updateMarket(
   });
 }
 
-export async function updateMarketOdds(marketId: string, yesProbability: number) {
+export async function updateMarketOdds(marketId: string, yesProbability: number, reason = '') {
   const { data: outcomes, error } = await supabase
     .from('outcomes')
     .select('id, name')
@@ -311,6 +311,7 @@ export async function updateMarketOdds(marketId: string, yesProbability: number)
     action: 'ODDS_OVERRIDE',
     target: marketId,
     summary: `Changed YES odds to ${Math.round(yesProbability * 100)}%`,
+    reason,
   });
 }
 
