@@ -2,10 +2,10 @@ import { router } from 'expo-router';
 import { useEffect } from 'react';
 import { Stack } from 'expo-router/stack';
 
-import { useDemoSession } from '@/state/demo-session';
+import { useSession } from '@/state/session';
 
 export default function AdminLayout() {
-  const { session } = useDemoSession();
+  const { session } = useSession();
   const isAdmin = session?.role === 'ADMIN';
 
   useEffect(() => {

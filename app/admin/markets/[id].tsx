@@ -1,23 +1,43 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { Alert, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, View } from 'react-native';
 
 import { AdminActionButton, AdminRow, AdminSectionLabel, AdminStatus } from '@/components/admin/admin-components';
 import { PlaceholderState } from '@/components/ui/placeholder-state';
 import { Screen } from '@/components/ui/screen';
 import { ThemedText } from '@/components/ui/themed-text';
-import { adminMarkets } from '@/data/mock-admin';
+import { fetchAdminBets, fetchMarket } from '@/lib/data';
 import { colors, spacing } from '@/theme';
+import { Market } from '@/types';
 
 export default function AdminMarketDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const market = adminMarkets.find((item) => item.id === id);
+  const [market, setMarket] = useState<Market | null>(null);
+  const [hasBets, setHasBets] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!id) {
+      return;
+    }
+
+    void Promise.all([fetchMarket(id), fetchAdminBets()])
+      .then(([nextMarket, bets]) => {
+        setMarket(nextMarket);
+        setHasBets(bets.some((bet) => bet.marketId === id));
+      })
+      .finally(() => setIsLoading(false));
+  }, [id]);
+
+  if (isLoading) {
+    return <Screen centered><ActivityIndicator color={colors.accent} /></Screen>;
+  }
 
   if (!market) {
     return <Screen centered><PlaceholderState title="Market not found" description="Check the market ID and try again." /></Screen>;
   }
 
   const previewAction = (title: string) => Alert.alert(title, 'This admin action is part of the UI preview and is not connected yet.');
-  const hasBets = market.id !== '4';
 
   return (
     <Screen>

@@ -1,8 +1,8 @@
-import { useCallback, useRef, useState } from 'react';
-import { FlatList, LayoutChangeEvent, Platform, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, FlatList, LayoutChangeEvent, Platform, StyleSheet, Text, View } from 'react-native';
 import { LineChart } from 'react-native-gifted-charts';
 
-import { mockMarkets } from '@/data/mock-markets';
+import { fetchMarkets } from '@/lib/data';
 import { colors, radius, spacing, typography } from '@/theme';
 import { Market } from '@/types';
 import { BalanceHeader } from '@/components/ui/balance-header';
@@ -25,13 +25,6 @@ function getProbabilityHistory(market: Market) {
   const currentProbability = Math.round(market.yesProbability * 100);
 
   return probabilityHistory[market.id] ?? [currentProbability];
-}
-
-function createBatch(batch: number): FeedItem[] {
-  return mockMarkets.map((market) => ({
-    key: `${batch}-${market.id}`,
-    market,
-  }));
 }
 
 function MarketPage({ item, height, width }: { item: FeedItem; height: number; width: number }) {
@@ -124,27 +117,60 @@ function MarketPage({ item, height, width }: { item: FeedItem; height: number; w
 }
 
 export default function FeedScreen() {
-  const [items, setItems] = useState(() => [...createBatch(0), ...createBatch(1)]);
+  const [markets, setMarkets] = useState<Market[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [viewport, setViewport] = useState({ height: 0, width: 0 });
-  const nextBatch = useRef(2);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    void fetchMarkets()
+      .then((nextMarkets) => {
+        if (isMounted) {
+          setMarkets(nextMarkets);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setErrorMessage('Markets could not be loaded. Please try again.');
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleLayout = useCallback((event: LayoutChangeEvent) => {
     const { height, width } = event.nativeEvent.layout;
     setViewport({ height, width });
   }, []);
 
-  const loadMore = useCallback(() => {
-    const batch = nextBatch.current;
-    nextBatch.current += 1;
-    setItems((current) => [...current, ...createBatch(batch)]);
-  }, []);
+  const items: FeedItem[] = markets.map((market) => ({
+    key: market.id,
+    market,
+  }));
 
   return (
     <View style={styles.container} onLayout={handleLayout}>
       <View style={styles.balanceHeader} pointerEvents='box-none'>
         <BalanceHeader />
       </View>
-      {viewport.height > 0 ? (
+      {isLoading ? (
+        <View style={styles.centeredState}>
+          <ActivityIndicator color={colors.accent} />
+        </View>
+      ) : errorMessage ? (
+        <View style={styles.centeredState}>
+          <Text style={styles.stateText}>{errorMessage}</Text>
+        </View>
+      ) : viewport.height > 0 ? (
         <FlatList
           data={items}
           renderItem={({ item }) => (
@@ -162,8 +188,6 @@ export default function FeedScreen() {
           decelerationRate="fast"
           directionalLockEnabled
           showsVerticalScrollIndicator={false}
-          onEndReached={loadMore}
-          onEndReachedThreshold={0.75}
           initialNumToRender={2}
           maxToRenderPerBatch={3}
           windowSize={3}
@@ -305,5 +329,15 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: spacing.xxxl,
     left: spacing.xl,
+  },
+  centeredState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.xl,
+  },
+  stateText: {
+    ...typography.subhead,
+    textAlign: 'center',
   },
 });

@@ -12,7 +12,9 @@ values
 insert into public.profiles (id, username)
 values
     ('11111111-1111-1111-1111-111111111111', 'user1'),
-    ('22222222-2222-2222-2222-222222222222', 'user2');
+    ('22222222-2222-2222-2222-222222222222', 'user2')
+on conflict (id) do update
+set username = excluded.username;
 
 
 insert into public.markets (
@@ -71,7 +73,8 @@ insert into public.ledger (
     delta,
     reason
 )
-values
+select seed.id, seed.profile_id, seed.delta, seed.reason
+from (values
     (
         '77777777-7777-7777-7777-777777777777',
         '11111111-1111-1111-1111-111111111111',
@@ -83,7 +86,14 @@ values
         '22222222-2222-2222-2222-222222222222',
         1000,
         'initial_credit'
-    );
+    )
+) as seed(id, profile_id, delta, reason)
+where not exists (
+    select 1
+    from public.ledger
+    where ledger.profile_id = seed.profile_id
+      and ledger.reason = 'initial_credit'
+);
 
 
 select is(

@@ -3,7 +3,7 @@ import { Screen } from '@/components/ui/screen';
 
 export default function LeaderboardScreen() {
   return (
-    <Screen centered>
+    <Screen>
       <PlaceholderState
         title="No rankings yet"
         description="Rankings will appear once people start predicting."

@@ -2,11 +2,11 @@ import { DarkTheme, ThemeProvider } from 'expo-router';
 import { Stack } from 'expo-router/stack';
 import { StatusBar } from 'expo-status-bar';
 
-import { DemoSessionProvider } from '@/state/demo-session';
+import { SessionProvider } from '@/state/session';
 
 export default function RootLayout() {
   return (
-    <DemoSessionProvider>
+    <SessionProvider>
       <ThemeProvider value={DarkTheme}>
         <StatusBar style="light" />
         <Stack
@@ -22,6 +22,6 @@ export default function RootLayout() {
           <Stack.Screen name="admin" options={{ headerShown: false }} />
         </Stack>
       </ThemeProvider>
-    </DemoSessionProvider>
+    </SessionProvider>
   );
 }

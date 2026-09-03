@@ -6,19 +6,16 @@ import { Screen } from '@/components/ui/screen';
 import { ThemedText } from '@/components/ui/themed-text';
 import { colors, radius, spacing } from '@/theme';
 import { supabase } from '@/lib/supabase';
-import { useDemoSession } from '@/state/demo-session';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { signIn: signInDemoSession } = useDemoSession();
 
   const handleSignIn = async () => {
     setErrorMessage(null);
     
-    // Call supabase login
     setIsSubmitting(true);
     const { error } = await supabase.auth.signInWithPassword({
       email: email.trim(),
@@ -26,16 +23,11 @@ export default function LoginScreen() {
     });
     setIsSubmitting(false);
  
-    // Display error
     if (error) {
       setErrorMessage(error.message);
       return;
     }
 
-    // Update demo session
-    signInDemoSession(email.trim(), password);
-    
-    // Continue to feed page
     router.replace('/feed');
   };
 
@@ -119,7 +111,6 @@ export default function LoginScreen() {
         <Link href="/signup" style={{ color: colors.accent, fontSize: 15, fontWeight: '600' }}>
           Create an account
         </Link>
-        <ThemedText variant="caption">Demo login</ThemedText>
       </View>
     </Screen>
   );
