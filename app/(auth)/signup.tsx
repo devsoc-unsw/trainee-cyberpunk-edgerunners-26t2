@@ -46,6 +46,11 @@ export default function SignupScreen() {
       return;
     }
 
+    if (data.session) {
+      router.replace('/feed');
+      return;
+    }
+
     // Update sent state
     setVerificationSent(true);
   };

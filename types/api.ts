@@ -121,7 +121,9 @@ export type Database = {
           id: string
           market_id: string
           outcome_id: string
+          payout: number | null
           profile_id: string
+          settled_at: string | null
           stake: number
           updated_at: string
         }
@@ -130,7 +132,9 @@ export type Database = {
           id?: string
           market_id: string
           outcome_id: string
+          payout?: number | null
           profile_id: string
+          settled_at?: string | null
           stake: number
           updated_at?: string
         }
@@ -139,7 +143,9 @@ export type Database = {
           id?: string
           market_id?: string
           outcome_id?: string
+          payout?: number | null
           profile_id?: string
+          settled_at?: string | null
           stake?: number
           updated_at?: string
         }
@@ -178,17 +184,17 @@ export type Database = {
         Row: {
           created_at: string
           id: string
-          username: string | null
+          username: string
         }
         Insert: {
           created_at?: string
           id: string
-          username?: string | null
+          username: string
         }
         Update: {
           created_at?: string
           id?: string
-          username?: string | null
+          username?: string
         }
         Relationships: []
       }
@@ -203,7 +209,21 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      get_leaderboard: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          is_current_user: boolean
+          profile_id: string
+          rank: number
+          settled_count: number
+          settled_profit: number
+          username: string
+        }[]
+      }
+      place_bet: {
+        Args: { p_outcome_id: string; p_stake: number }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never

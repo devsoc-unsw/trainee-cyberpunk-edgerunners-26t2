@@ -2,6 +2,8 @@ import 'react-native-url-polyfill/auto';
 import * as SecureStore from 'expo-secure-store';
 import { createClient } from '@supabase/supabase-js';
 
+import type { Database } from '@/types';
+
 // Translate between SecureStore ops and Supabase client data
 const ExpoSecureStoreAdapter = {
   getItem: (key: string) => {
@@ -18,10 +20,10 @@ const ExpoSecureStoreAdapter = {
 // Read environment variables. Only EXPO_PUBLIC_* vars are inlined into the app
 // bundle, so anything the client needs has to carry that prefix.
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
+const supabasePublishableKey = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
 
 // Initialise Supabase client
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+export const supabase = createClient<Database>(supabaseUrl, supabasePublishableKey, {
   auth: {
     storage: ExpoSecureStoreAdapter,
     autoRefreshToken: true,

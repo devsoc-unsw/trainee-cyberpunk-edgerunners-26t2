@@ -8,12 +8,6 @@ values (
     'place-bet-test@example.com'
 );
 
-insert into public.profiles (id, username)
-values (
-    '90000000-0000-0000-0000-000000000099',
-    'place_bet_test_user'
-);
-
 insert into public.markets (
     id,
     title,
@@ -63,23 +57,12 @@ values
         100
     );
 
-insert into public.ledger (
-    profile_id,
-    delta,
-    reason
-)
-values (
-    '90000000-0000-0000-0000-000000000099',
-    1000,
-    'initial_credit'
-);
-
 set local request.jwt.claim.sub =
     '90000000-0000-0000-0000-000000000099';
 
 select is(
     (
-        select coalesce(sum(delta), 0)
+        select coalesce(sum(delta), 0)::bigint
         from public.ledger
         where profile_id = '90000000-0000-0000-0000-000000000099'
     ),
@@ -101,7 +84,7 @@ select throws_ok(
 
 select is(
     (
-        select coalesce(sum(delta), 0)
+        select coalesce(sum(delta), 0)::bigint
         from public.ledger
         where profile_id = '90000000-0000-0000-0000-000000000099'
     ),
@@ -111,7 +94,7 @@ select is(
 
 select is(
     (
-        select coalesce(sum(delta), 0)
+        select coalesce(sum(delta), 0)::bigint
         from public.ledger
         where profile_id = '90000000-0000-0000-0000-000000000099'
     ),
@@ -133,7 +116,7 @@ select throws_ok(
 
 select is(
     (
-        select coalesce(sum(delta), 0)
+        select coalesce(sum(delta), 0)::bigint
         from public.ledger
         where profile_id = '90000000-0000-0000-0000-000000000099'
     ),
@@ -143,7 +126,7 @@ select is(
 
 select is(
     (
-        select coalesce(sum(delta), 0)
+        select coalesce(sum(delta), 0)::bigint
         from public.ledger
         where profile_id = '90000000-0000-0000-0000-000000000099'
     ),
@@ -165,7 +148,7 @@ select throws_ok(
 
 select is(
     (
-        select coalesce(sum(delta), 0)
+        select coalesce(sum(delta), 0)::bigint
         from public.ledger
         where profile_id = '90000000-0000-0000-0000-000000000099'
     ),
@@ -175,7 +158,7 @@ select is(
 
 select is(
     (
-        select coalesce(sum(delta), 0)
+        select coalesce(sum(delta), 0)::bigint
         from public.ledger
         where profile_id = '90000000-0000-0000-0000-000000000099'
     ),
@@ -197,7 +180,7 @@ select throws_ok(
 
 select is(
     (
-        select coalesce(sum(delta), 0)
+        select coalesce(sum(delta), 0)::bigint
         from public.ledger
         where profile_id = '90000000-0000-0000-0000-000000000099'
     ),
@@ -217,7 +200,7 @@ select lives_ok(
 
 select is(
     (
-        select coalesce(sum(delta), 0)
+        select coalesce(sum(delta), 0)::bigint
         from public.ledger
         where profile_id = '90000000-0000-0000-0000-000000000099'
     ),
@@ -239,7 +222,7 @@ select throws_ok(
 
 select is(
     (
-        select coalesce(sum(delta), 0)
+        select coalesce(sum(delta), 0)::bigint
         from public.ledger
         where profile_id = '90000000-0000-0000-0000-000000000099'
     ),
