@@ -1,18 +1,56 @@
-import { useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
-import { View } from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, View } from 'react-native';
 
 import { AdminActionButton, AdminField, AdminTextInput } from '@/components/admin/admin-components';
 import { PlaceholderState } from '@/components/ui/placeholder-state';
 import { Screen } from '@/components/ui/screen';
 import { ThemedText } from '@/components/ui/themed-text';
-import { adminMarkets } from '@/data/mock-admin';
-import { spacing } from '@/theme';
+import { fetchMarket, updateMarketOdds } from '@/lib/data';
+import { colors, spacing } from '@/theme';
+import { Market } from '@/types';
 
 export default function OverrideOddsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const market = adminMarkets.find((item) => item.id === id);
-  const [yesProbability, setYesProbability] = useState(market?.yesProbability ?? 0.5);
+  const [market, setMarket] = useState<Market | null>(null);
+  const [yesProbability, setYesProbability] = useState(0.5);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!id) {
+      return;
+    }
+
+    void fetchMarket(id)
+      .then((nextMarket) => {
+        setMarket(nextMarket);
+        setYesProbability(nextMarket?.yesProbability ?? 0.5);
+      })
+      .catch(() => setErrorMessage('Market could not be loaded.'))
+      .finally(() => setIsLoading(false));
+  }, [id]);
+
+  const handleApplyOverride = async () => {
+    if (!id) return;
+
+    setErrorMessage(null);
+    setIsSubmitting(true);
+
+    try {
+      await updateMarketOdds(id, yesProbability);
+      router.back();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Odds could not be updated.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (isLoading) {
+    return <Screen centered><ActivityIndicator color={colors.accent} /></Screen>;
+  }
 
   if (!market) {
     return <Screen centered><PlaceholderState title="Market not found" description="Check the market ID and try again." /></Screen>;
@@ -43,7 +81,8 @@ export default function OverrideOddsScreen() {
         <AdminField label="Reason">
           <AdminTextInput placeholder="Reason for override" multiline numberOfLines={3} accessibilityLabel="Reason for override" />
         </AdminField>
-        <AdminActionButton>Apply override</AdminActionButton>
+        {errorMessage ? <ThemedText style={{ color: colors.no }}>{errorMessage}</ThemedText> : null}
+        <AdminActionButton disabled={isSubmitting} onPress={handleApplyOverride}>{isSubmitting ? 'Applying override…' : 'Apply override'}</AdminActionButton>
       </View>
     </Screen>
   );

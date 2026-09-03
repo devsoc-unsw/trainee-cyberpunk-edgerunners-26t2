@@ -5,7 +5,7 @@ import { AdminSectionLabel } from '@/components/admin/admin-components';
 import { Screen } from '@/components/ui/screen';
 import { ThemedText } from '@/components/ui/themed-text';
 import { colors, radius, spacing } from '@/theme';
-import { useDemoSession } from '@/state/demo-session';
+import { useSession } from '@/state/session';
 import { supabase } from '@/lib/supabase';
 
 function ProfileRow({ title, onPress }: { title: string; onPress?: () => void }) {
@@ -33,7 +33,7 @@ function ProfileRow({ title, onPress }: { title: string; onPress?: () => void })
 }
 
 export default function ProfileScreen() {
-  const { session, signOut } = useDemoSession();
+  const { session, signOut } = useSession();
   const handleSignOut = async () => {
     await supabase.auth.signOut({ scope: 'local' });
     signOut();

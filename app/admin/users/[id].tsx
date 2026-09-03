@@ -1,16 +1,33 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { Alert, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, View } from 'react-native';
 
 import { AdminActionButton, AdminField, AdminRow, AdminSectionLabel, AdminStatus, AdminTextInput } from '@/components/admin/admin-components';
 import { PlaceholderState } from '@/components/ui/placeholder-state';
 import { Screen } from '@/components/ui/screen';
 import { ThemedText } from '@/components/ui/themed-text';
-import { adminUsers } from '@/data/mock-admin';
-import { spacing } from '@/theme';
+import { fetchAdminUsers, updateUserAccess } from '@/lib/data';
+import { colors, spacing } from '@/theme';
+import { AdminUser } from '@/types';
 
 export default function AdminUserDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const user = adminUsers.find((item) => item.id === id);
+  const [user, setUser] = useState<AdminUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!id) {
+      return;
+    }
+
+    void fetchAdminUsers()
+      .then((users) => setUser(users.find((item) => item.id === id) ?? null))
+      .finally(() => setIsLoading(false));
+  }, [id]);
+
+  if (isLoading) {
+    return <Screen centered><ActivityIndicator color={colors.accent} /></Screen>;
+  }
 
   if (!user) {
     return <Screen centered><PlaceholderState title="User not found" description="Check the user ID and try again." /></Screen>;
@@ -44,8 +61,24 @@ export default function AdminUserDetailsScreen() {
       </View>
       <View style={{ gap: spacing.sm }}>
         <AdminSectionLabel>Permissions</AdminSectionLabel>
-        <AdminActionButton onPress={() => Alert.alert('Assign admin', 'This is a UI preview. The role would be updated after backend permissions are connected.')}>Assign admin</AdminActionButton>
-        <AdminActionButton onPress={() => Alert.alert('Suspend user', 'This is a UI preview. The account would be marked as suspended after backend permissions are connected.')}>Suspend user</AdminActionButton>
+        <AdminActionButton onPress={async () => {
+          if (!id) return;
+          try {
+            await updateUserAccess(id, 'role', 'ADMIN');
+            setUser((current) => current ? { ...current, role: 'ADMIN' } : current);
+          } catch (error) {
+            Alert.alert('Assign admin failed', error instanceof Error ? error.message : 'Please try again.');
+          }
+        }}>Assign admin</AdminActionButton>
+        <AdminActionButton onPress={async () => {
+          if (!id) return;
+          try {
+            await updateUserAccess(id, 'status', 'SUSPENDED');
+            setUser((current) => current ? { ...current, status: 'SUSPENDED' } : current);
+          } catch (error) {
+            Alert.alert('Suspend user failed', error instanceof Error ? error.message : 'Please try again.');
+          }
+        }}>Suspend user</AdminActionButton>
       </View>
     </Screen>
   );

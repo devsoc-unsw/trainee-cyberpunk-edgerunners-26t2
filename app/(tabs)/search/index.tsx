@@ -1,21 +1,31 @@
 import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
-import { FlatList, Pressable, TextInput, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, FlatList, Pressable, TextInput, View } from 'react-native';
 
+import { PlaceholderState } from '@/components/ui/placeholder-state';
 import { ThemedText } from '@/components/ui/themed-text';
-import { mockMarkets } from '@/data/mock-markets';
+import { fetchMarkets } from '@/lib/data';
 import { colors, radius, spacing } from '@/theme';
 
 export default function SearchScreen() {
   const [query, setQuery] = useState('');
+  const [allMarkets, setAllMarkets] = useState<Awaited<ReturnType<typeof fetchMarkets>>>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    void fetchMarkets()
+      .then(setAllMarkets)
+      .finally(() => setIsLoading(false));
+  }, []);
+
   const markets = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
-    if (!normalizedQuery) return mockMarkets;
+    if (!normalizedQuery) return allMarkets;
 
-    return mockMarkets.filter((market) =>
+    return allMarkets.filter((market) =>
       `${market.title} ${market.category}`.toLowerCase().includes(normalizedQuery),
     );
-  }, [query]);
+  }, [allMarkets, query]);
 
   return (
     <FlatList
@@ -46,15 +56,16 @@ export default function SearchScreen() {
             }}
           />
           <ThemedText variant="subhead">
-            {markets.length} {markets.length === 1 ? 'market' : 'markets'}
+            {isLoading ? 'Loading markets…' : `${markets.length} ${markets.length === 1 ? 'market' : 'markets'}`}
           </ThemedText>
         </View>
       }
       ListEmptyComponent={
-        <View style={{ paddingVertical: spacing.xxl, alignItems: 'center', gap: spacing.sm }}>
-          <ThemedText variant="headline">No markets found</ThemedText>
-          <ThemedText variant="subhead">Try a different search.</ThemedText>
-        </View>
+        isLoading ? (
+          <ActivityIndicator color={colors.accent} />
+        ) : (
+          <PlaceholderState title="No markets found" description="Try a different search." />
+        )
       }
       renderItem={({ item }) => (
         <Pressable
