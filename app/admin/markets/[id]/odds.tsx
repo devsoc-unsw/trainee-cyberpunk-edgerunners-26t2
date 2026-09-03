@@ -14,6 +14,7 @@ export default function OverrideOddsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [market, setMarket] = useState<Market | null>(null);
   const [yesProbability, setYesProbability] = useState(0.5);
+  const [reason, setReason] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -39,7 +40,7 @@ export default function OverrideOddsScreen() {
     setIsSubmitting(true);
 
     try {
-      await updateMarketOdds(id, yesProbability);
+      await updateMarketOdds(id, yesProbability, reason.trim());
       router.back();
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Odds could not be updated.');
@@ -79,7 +80,14 @@ export default function OverrideOddsScreen() {
         <AdminActionButton onPress={() => setYesProbability(0.5)}>50 / 50</AdminActionButton>
         <AdminActionButton onPress={() => setYesProbability(0.75)}>75 / 25</AdminActionButton>
         <AdminField label="Reason">
-          <AdminTextInput placeholder="Reason for override" multiline numberOfLines={3} accessibilityLabel="Reason for override" />
+          <AdminTextInput
+            value={reason}
+            onChangeText={setReason}
+            placeholder="Reason for override"
+            multiline
+            numberOfLines={3}
+            accessibilityLabel="Reason for override"
+          />
         </AdminField>
         {errorMessage ? <ThemedText style={{ color: colors.no }}>{errorMessage}</ThemedText> : null}
         <AdminActionButton disabled={isSubmitting} onPress={handleApplyOverride}>{isSubmitting ? 'Applying override…' : 'Apply override'}</AdminActionButton>

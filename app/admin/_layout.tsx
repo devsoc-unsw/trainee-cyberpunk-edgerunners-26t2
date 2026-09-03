@@ -5,14 +5,18 @@ import { Stack } from 'expo-router/stack';
 import { useSession } from '@/state/session';
 
 export default function AdminLayout() {
-  const { session } = useSession();
-  const isAdmin = session?.role === 'ADMIN';
+  const { profile, isLoading } = useSession();
+  // The role comes from the profiles table, so this reflects what the database
+  // will actually let the user do rather than a client-side claim.
+  const isAdmin = profile?.role === 'ADMIN';
 
   useEffect(() => {
-    if (!isAdmin) {
+    // Wait for the profile to arrive; redirecting mid-load would bounce an
+    // admin out of their own tools on a cold start.
+    if (!isLoading && !isAdmin) {
       router.replace('/feed');
     }
-  }, [isAdmin]);
+  }, [isAdmin, isLoading]);
 
   if (!isAdmin) {
     return null;

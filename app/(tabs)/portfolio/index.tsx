@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { useCallback, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
+import { ActivityIndicator, RefreshControl, View } from 'react-native';
 
 import { PlaceholderState } from '@/components/ui/placeholder-state';
 import { Screen } from '@/components/ui/screen';
@@ -10,39 +11,47 @@ import { colors, radius, spacing } from '@/theme';
 import { Position } from '@/types';
 
 export default function PortfolioScreen() {
-  const { session } = useSession();
+  const { profile } = useSession();
   const [positions, setPositions] = useState<Position[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!session?.id) {
+  const profileId = profile?.id;
+
+  const load = useCallback(async () => {
+    if (!profileId) {
+      // No profile means nothing to show. Without this the spinner below would
+      // never be cleared.
+      setPositions([]);
+      setIsLoading(false);
       return;
     }
 
-    let isMounted = true;
+    try {
+      setPositions(await fetchPositions(profileId));
+      setErrorMessage(null);
+    } catch {
+      setErrorMessage('Your predictions could not be loaded.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [profileId]);
 
-    void fetchPositions(session.id)
-      .then((nextPositions) => {
-        if (isMounted) {
-          setPositions(nextPositions);
-        }
-      })
-      .catch(() => {
-        if (isMounted) {
-          setErrorMessage('Your predictions could not be loaded.');
-        }
-      })
-      .finally(() => {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      });
+  // On focus rather than on mount: the tab bar keeps this screen mounted and
+  // profileId never changes, so a mount-only effect showed the list as it was
+  // before the user went off to a market screen and placed a prediction.
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load])
+  );
 
-    return () => {
-      isMounted = false;
-    };
-  }, [session?.id]);
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await load();
+    setIsRefreshing(false);
+  };
 
   if (isLoading) {
     return (
@@ -62,7 +71,15 @@ export default function PortfolioScreen() {
 
   if (positions.length === 0) {
     return (
-      <Screen>
+      <Screen
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.muted}
+          />
+        }
+      >
         <PlaceholderState
           title="No predictions yet"
           description="Your active and settled predictions will show here."
@@ -72,7 +89,11 @@ export default function PortfolioScreen() {
   }
 
   return (
-    <Screen>
+    <Screen
+      refreshControl={
+        <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} tintColor={colors.muted} />
+      }
+    >
       <View style={{ gap: spacing.xs }}>
         <ThemedText variant="title">My predictions</ThemedText>
         <ThemedText variant="subhead">Your active and settled predictions.</ThemedText>
