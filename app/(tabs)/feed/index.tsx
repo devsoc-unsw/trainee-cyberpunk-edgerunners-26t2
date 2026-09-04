@@ -1,18 +1,19 @@
 import { useEvent } from 'expo';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router, useFocusEffect } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, AppState, FlatList, LayoutChangeEvent, NativeScrollEvent, NativeSyntheticEvent, Platform, Pressable, StyleSheet, Text, View, ViewToken } from 'react-native';
 import { LineChart } from 'react-native-gifted-charts';
 
 import { BalanceHeader } from '@/components/ui/balance-header';
+import { BetSheet } from '@/components/ui/bet-sheet';
 import { MarketCountdown } from '@/components/ui/market-countdown';
 import { fetchMarketHistories, fetchMarkets } from '@/lib/data';
 import { getVideoPublicUrl } from '@/lib/market-video';
 import { useAccessibility } from '@/state/accessibility';
 import { colors, radius, spacing, typography } from '@/theme';
-import { Market, MarketPricePoint } from '@/types';
+import { Market, MarketPricePoint, Outcome } from '@/types';
 
 type FeedItem = { key: string; market: Market; history: MarketPricePoint[] };
 const MAX_CHART_POINTS = 60;
@@ -64,14 +65,10 @@ function MarketVideo({ path, active, muted, onError }: { path: string; active: b
   return <VideoView contentFit="cover" nativeControls={false} player={player} style={StyleSheet.absoluteFill} surfaceType="textureView" />;
 }
 
-function MarketPage({ item, height, width, shouldLoadVideo, shouldPlayVideo, muted, onToggleMuted }: { item: FeedItem; height: number; width: number; shouldLoadVideo: boolean; shouldPlayVideo: boolean; muted: boolean; onToggleMuted: () => void }) {
+function MarketPage({ item, height, width, shouldLoadVideo, shouldPlayVideo, muted, onToggleMuted, onSelectOutcome }: { item: FeedItem; height: number; width: number; shouldLoadVideo: boolean; shouldPlayVideo: boolean; muted: boolean; onToggleMuted: () => void; onSelectOutcome: (market: Market, outcome: Outcome) => void }) {
   const [videoFailed, setVideoFailed] = useState(false);
   const yes = Math.round(item.market.yesProbability * 100);
   const showVideo = Boolean(item.market.videoPath && shouldLoadVideo && !videoFailed);
-  const openOutcome = (name: 'YES' | 'NO') => {
-    const outcomeId = item.market.outcomes?.find((outcome) => outcome.name === name)?.id;
-    if (outcomeId) router.push({ pathname: '/markets/[id]', params: { id: item.market.id, outcomeId } });
-  };
 
   return (
     <View style={[styles.page, { height }]}>
@@ -91,8 +88,8 @@ function MarketPage({ item, height, width, shouldLoadVideo, shouldPlayVideo, mut
         <Text style={[styles.title, showVideo && styles.videoTitle]} numberOfLines={4}>{item.market.title}</Text>
       </View>
       <View style={styles.outcomes}>
-        <Pressable accessibilityRole="button" accessibilityLabel={`YES, ${yes}%`} onPress={() => openOutcome('YES')} style={({ pressed }) => [styles.outcome, styles.yesOutcome, showVideo && styles.videoOutcome, pressed && styles.pressed]}><Text style={styles.outcomeLabel}>YES</Text><Text style={styles.yesValue}>{yes}%</Text></Pressable>
-        <Pressable accessibilityRole="button" accessibilityLabel={`NO, ${100 - yes}%`} onPress={() => openOutcome('NO')} style={({ pressed }) => [styles.outcome, styles.noOutcome, showVideo && styles.videoOutcome, pressed && styles.pressed]}><Text style={styles.outcomeLabel}>NO</Text><Text style={styles.noValue}>{100 - yes}%</Text></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel={`YES, ${yes}%`} onPress={() => onSelectOutcome(item.market, 'YES')} style={({ pressed }) => [styles.outcome, styles.yesOutcome, showVideo && styles.videoOutcome, pressed && styles.pressed]}><Text style={styles.outcomeLabel}>YES</Text><Text style={styles.yesValue}>{yes}%</Text></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel={`NO, ${100 - yes}%`} onPress={() => onSelectOutcome(item.market, 'NO')} style={({ pressed }) => [styles.outcome, styles.noOutcome, showVideo && styles.videoOutcome, pressed && styles.pressed]}><Text style={styles.outcomeLabel}>NO</Text><Text style={styles.noValue}>{100 - yes}%</Text></Pressable>
       </View>
     </View>
   );
@@ -109,6 +106,7 @@ export default function FeedScreen() {
   const [isAppActive, setIsAppActive] = useState(AppState.currentState === 'active');
   const [isSwiping, setIsSwiping] = useState(false);
   const [muted, setMuted] = useState(true);
+  const [activeBet, setActiveBet] = useState<{ market: Market; outcome: Outcome } | null>(null);
   const { reduceMotion } = useAccessibility();
 
   useEffect(() => {
@@ -116,20 +114,29 @@ export default function FeedScreen() {
     return () => subscription.remove();
   }, []);
 
-  useFocusEffect(useCallback(() => {
-    let mounted = true;
-    setIsFocused(true);
-    void fetchMarkets().then(async (nextMarkets) => {
-      if (!mounted) return;
+  const loadMarkets = useCallback(async (isMounted: () => boolean = () => true) => {
+    try {
+      const nextMarkets = await fetchMarkets();
+      if (!isMounted()) return;
       setMarkets(nextMarkets);
       setErrorMessage(null);
       try {
         const nextHistories = await fetchMarketHistories(nextMarkets.map((market) => market.id));
-        if (mounted) setHistories(nextHistories);
-      } catch { if (mounted) setHistories({}); }
-    }).catch(() => mounted && setErrorMessage('Markets could not be loaded. Please try again.')).finally(() => mounted && setIsLoading(false));
+        if (isMounted()) setHistories(nextHistories);
+      } catch { if (isMounted()) setHistories({}); }
+    } catch {
+      if (isMounted()) setErrorMessage('Markets could not be loaded. Please try again.');
+    } finally {
+      if (isMounted()) setIsLoading(false);
+    }
+  }, []);
+
+  useFocusEffect(useCallback(() => {
+    let mounted = true;
+    setIsFocused(true);
+    void loadMarkets(() => mounted);
     return () => { mounted = false; setIsFocused(false); };
-  }, []));
+  }, [loadMarkets]));
 
   const onViewableItemsChanged = useCallback(({ viewableItems }: { viewableItems: ViewToken<FeedItem>[] }) => {
     const index = viewableItems[0]?.index;
@@ -140,13 +147,24 @@ export default function FeedScreen() {
     setIsSwiping(false);
   };
   const items: FeedItem[] = markets.map((market) => ({ key: market.id, market, history: histories[market.id] ?? [] }));
-  const canPlay = isFocused && isAppActive && !isSwiping && !reduceMotion;
+  const canPlay = isFocused && isAppActive && !isSwiping && !reduceMotion && !activeBet;
 
   return (
     <View style={styles.container} onLayout={(event: LayoutChangeEvent) => setViewport(event.nativeEvent.layout)}>
       <View style={styles.balanceHeader} pointerEvents="box-none"><BalanceHeader /></View>
       {isLoading ? <View style={styles.centeredState}><ActivityIndicator color={colors.accent} /></View> : errorMessage ? <View style={styles.centeredState}><Text style={styles.stateText}>{errorMessage}</Text></View> : viewport.height > 0 ? (
-        <FlatList contentInsetAdjustmentBehavior="never" data={items} decelerationRate="fast" directionalLockEnabled disableIntervalMomentum getItemLayout={(_, index) => ({ length: viewport.height, offset: viewport.height * index, index })} initialNumToRender={2} keyExtractor={(item) => item.key} maxToRenderPerBatch={3} onMomentumScrollEnd={handleMomentumEnd} onScrollBeginDrag={() => setIsSwiping(true)} onScrollEndDrag={(event) => { if (event.nativeEvent.velocity?.y === 0) handleMomentumEnd(event); }} onViewableItemsChanged={onViewableItemsChanged} renderItem={({ item, index }) => <MarketPage height={viewport.height} item={item} muted={muted} onToggleMuted={() => setMuted((value) => !value)} shouldLoadVideo={!reduceMotion && Math.abs(index - activeIndex) <= 1} shouldPlayVideo={canPlay && index === activeIndex} width={viewport.width} />} showsVerticalScrollIndicator={false} snapToAlignment="start" snapToInterval={viewport.height} viewabilityConfig={VIEWABILITY_CONFIG} windowSize={3} />
+        <FlatList contentInsetAdjustmentBehavior="never" data={items} decelerationRate="fast" directionalLockEnabled disableIntervalMomentum getItemLayout={(_, index) => ({ length: viewport.height, offset: viewport.height * index, index })} initialNumToRender={2} keyExtractor={(item) => item.key} maxToRenderPerBatch={3} onMomentumScrollEnd={handleMomentumEnd} onScrollBeginDrag={() => setIsSwiping(true)} onScrollEndDrag={(event) => { if (event.nativeEvent.velocity?.y === 0) handleMomentumEnd(event); }} onViewableItemsChanged={onViewableItemsChanged} renderItem={({ item, index }) => <MarketPage height={viewport.height} item={item} muted={muted} onSelectOutcome={(market, outcome) => setActiveBet({ market, outcome })} onToggleMuted={() => setMuted((value) => !value)} shouldLoadVideo={!reduceMotion && Math.abs(index - activeIndex) <= 1} shouldPlayVideo={canPlay && index === activeIndex} width={viewport.width} />} showsVerticalScrollIndicator={false} snapToAlignment="start" snapToInterval={viewport.height} viewabilityConfig={VIEWABILITY_CONFIG} windowSize={3} />
+      ) : null}
+      {activeBet ? (
+        <BetSheet
+          market={activeBet.market}
+          outcome={activeBet.outcome}
+          onClose={() => setActiveBet(null)}
+          onPlaced={() => {
+            setActiveBet(null);
+            void loadMarkets();
+          }}
+        />
       ) : null}
     </View>
   );
