@@ -105,6 +105,5 @@ export default function LoginScreen() {
         </View>
       </Screen>
     </KeyboardAvoidingView>
-    
   );
 }
