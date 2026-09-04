@@ -189,10 +189,10 @@ export default function PortfolioScreen() {
     : 0;
   const todayProfit = historyPositions
     .filter((position) => {
-      if (!position.placedAt) {
+      if (!position.settledAt) {
         return false;
       }
-      return new Date(position.placedAt).toDateString() === new Date().toDateString();
+      return new Date(position.settledAt).toDateString() === new Date().toDateString();
     })
     .reduce((total, position) => total + getPositionProfit(position), 0);
 

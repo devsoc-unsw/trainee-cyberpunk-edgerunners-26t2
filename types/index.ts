@@ -54,6 +54,7 @@ export type Position = {
   entryProbability?: number;
   marketTitle?: string;
   placedAt?: string;
+  settledAt?: string;
 };
 
 export type AccountStatus = 'ACTIVE' | 'SUSPENDED';
