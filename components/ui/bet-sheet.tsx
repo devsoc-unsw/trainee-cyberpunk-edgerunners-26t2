@@ -1,5 +1,11 @@
-import { Alert, StyleSheet, Text, View, Pressable } from "react-native";
-import { FullWindowOverlay } from "react-native-screens";
+import {
+  Alert,
+  StyleSheet,
+  Text,
+  View,
+  Pressable,
+  Keyboard,
+} from "react-native";
 import {
   BottomSheetModal,
   BottomSheetView,
@@ -30,22 +36,39 @@ export function BetSheet(props: Props) {
     ]);
   };
 
+  const [keyboardUp, setKeyboardUp] = useState(false);
+
+  useEffect(() => {
+    const show = Keyboard.addListener("keyboardDidShow", () =>
+      setKeyboardUp(true),
+    );
+    const hide = Keyboard.addListener("keyboardDidHide", () =>
+      setKeyboardUp(false),
+    );
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
+
   const sheetRef = useRef<BottomSheetModal>(null);
   useEffect(() => {
     sheetRef.current?.present();
   }, []);
 
+  // { keyboardup && Pressable ... } dismisses keyboard on any tap
+  // and blocks confirm/cancel while inputting stake
   return (
     <BottomSheetModal
       ref={sheetRef}
       onDismiss={onClose}
-      containerComponent={FullWindowOverlay}
       enablePanDownToClose
+      enableBlurKeyboardOnGesture
+      keyboardBlurBehavior="restore"
       backgroundStyle={{ backgroundColor: colors.surface }}
       handleIndicatorStyle={{ backgroundColor: colors.muted }}
     >
-      <BottomSheetView>
-        <View style={styles.sheet}>
+      <BottomSheetView style={styles.sheet}>
           <Text style={styles.title}>
             {market.title} Betting{" "}
             <Text style={{ color: outcome === "YES" ? colors.yes : colors.no }}>
@@ -69,13 +92,26 @@ export function BetSheet(props: Props) {
               Credits
             </Text>
           </View>
-          <Pressable onPress={handleConfirm} style={styles.confirmBtn}>
+          <Pressable
+            onPress={handleConfirm}
+            style={[styles.confirmBtn, keyboardUp && styles.btnDisabled]}
+          >
             <Text style={styles.btnText}>Confirm Bet</Text>
           </Pressable>
-          <Pressable onPress={onClose} style={styles.cancelBtn}>
+          <Pressable
+            onPress={onClose}
+            style={[styles.cancelBtn, keyboardUp && styles.btnDisabled]}
+          >
             <Text style={styles.btnText}>Cancel</Text>
           </Pressable>
-        </View>
+          
+          {keyboardUp && (
+            <Pressable
+              style={StyleSheet.absoluteFill}
+              onPress={Keyboard.dismiss}
+              accessible={false}
+            />
+          )}
       </BottomSheetView>
     </BottomSheetModal>
   );
@@ -100,6 +136,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     backgroundColor: colors.background,
     borderColor: colors.muted + "40",
+    borderWidth: 1,
     height: 60,
     textAlign: "center",
     color: colors.muted,
@@ -122,5 +159,8 @@ const styles = StyleSheet.create({
   btnText: {
     ...typography.headline,
     paddingVertical: 10,
+  },
+  btnDisabled: {
+    opacity: 0.4,
   },
 });
