@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { router } from 'expo-router';
-import { View } from 'react-native';
+import { KeyboardAvoidingView, Platform, View } from 'react-native';
 
 import { AdminActionButton, AdminField, AdminTextInput } from '@/components/admin/admin-components';
 import { Screen } from '@/components/ui/screen';
@@ -57,32 +57,37 @@ export default function CreateMarketScreen() {
   };
 
   return (
-    <Screen>
-      <View style={{ gap: spacing.xs }}>
-        <ThemedText variant="title">New market</ThemedText>
-      </View>
-      <View style={{ gap: spacing.md }}>
-        <AdminField label="Question">
-          <AdminTextInput value={title} onChangeText={setTitle} placeholder="Ask a yes or no question" accessibilityLabel="Question" />
-        </AdminField>
-        <AdminField label="Description">
-          <AdminTextInput value={description} onChangeText={setDescription} placeholder="Short description" multiline numberOfLines={3} accessibilityLabel="Description" />
-        </AdminField>
-        <AdminField label="Category">
-          <AdminTextInput value={category} onChangeText={setCategory} placeholder="e.g. Campus" accessibilityLabel="Category" />
-        </AdminField>
-        <AdminField label="Closing date">
-          <AdminTextInput value={closesAt} onChangeText={setClosesAt} placeholder="YYYY-MM-DD" accessibilityLabel="Closing date" />
-        </AdminField>
-        <AdminField label="Resolution criteria">
-          <AdminTextInput value={resolutionCriteria} onChangeText={setResolutionCriteria} placeholder="What counts as YES?" multiline numberOfLines={4} accessibilityLabel="Resolution criteria" />
-        </AdminField>
-        <AdminField label="Starting YES percentage">
-          <AdminTextInput value={yesPercentage} onChangeText={setYesPercentage} keyboardType="number-pad" accessibilityLabel="Starting YES percentage" />
-        </AdminField>
-        {errorMessage ? <ThemedText style={{ color: colors.no }}>{errorMessage}</ThemedText> : null}
-        <AdminActionButton disabled={isSubmitting} onPress={handleCreateMarket}>{isSubmitting ? 'Creating market…' : 'Create market'}</AdminActionButton>
-      </View>
-    </Screen>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={{ flex: 1 }}
+    >
+      <Screen>
+        <View style={{ gap: spacing.xs }}>
+          <ThemedText variant="title">New market</ThemedText>
+        </View>
+        <View style={{ gap: spacing.md }}>
+          <AdminField label="Question">
+            <AdminTextInput value={title} onChangeText={setTitle} placeholder="Ask a yes or no question" accessibilityLabel="Question" />
+          </AdminField>
+          <AdminField label="Description">
+            <AdminTextInput value={description} onChangeText={setDescription} placeholder="Short description" multiline numberOfLines={3} accessibilityLabel="Description" />
+          </AdminField>
+          <AdminField label="Category">
+            <AdminTextInput value={category} onChangeText={setCategory} placeholder="e.g. Campus" accessibilityLabel="Category" />
+          </AdminField>
+          <AdminField label="Closing date">
+            <AdminTextInput value={closesAt} onChangeText={setClosesAt} placeholder="YYYY-MM-DD" accessibilityLabel="Closing date" />
+          </AdminField>
+          <AdminField label="Resolution criteria">
+            <AdminTextInput value={resolutionCriteria} onChangeText={setResolutionCriteria} placeholder="What counts as YES?" multiline numberOfLines={4} accessibilityLabel="Resolution criteria" />
+          </AdminField>
+          <AdminField label="Starting YES percentage">
+            <AdminTextInput value={yesPercentage} onChangeText={setYesPercentage} keyboardType="number-pad" accessibilityLabel="Starting YES percentage" />
+          </AdminField>
+          {errorMessage ? <ThemedText style={{ color: colors.no }}>{errorMessage}</ThemedText> : null}
+          <AdminActionButton disabled={isSubmitting} onPress={handleCreateMarket}>{isSubmitting ? 'Creating market…' : 'Create market'}</AdminActionButton>
+        </View>
+      </Screen>
+    </KeyboardAvoidingView>
   );
 }

@@ -106,6 +106,15 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     // session revoked -- still looks valid, so the app booted straight into the
     // signed-in UI instead of the login screen.
     supabase.auth.getUser().then(async ({ data, error }) => {
+      if (error) {
+        console.error('getUser failed:', {
+          name: error.name,
+          message: error.message,
+          status: error.status,
+          code: error.code,
+        });
+      }
+      
       if (!isMounted) {
         return;
       }
@@ -153,20 +162,28 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   // live in callbacks, which is what makes it safe to call from an effect.
   const loadProfile = useCallback((currentUser: User) => {
     const requestId = ++loadId.current;
-
+  
     return fetchProfile(currentUser)
       .then((profile) => {
         if (requestId === loadId.current) {
           setLoaded({ userId: currentUser.id, profile });
         }
       })
-      .catch(() => {
-        // Keep whatever was already on screen for this user -- the profile
-        // screen offers a retry through pull-to-refresh rather than dropping
-        // them out of the app over one failed request.
+      .catch((error) => {
+        console.error('fetchProfile failed:', {
+          name: error?.name,
+          message: error?.message,
+          code: error?.code,
+          status: error?.status,
+          details: error?.details,
+          hint: error?.hint,
+        });
+  
         if (requestId === loadId.current) {
           setLoaded((current) =>
-            current?.userId === currentUser.id ? current : { userId: currentUser.id, profile: null }
+            current?.userId === currentUser.id
+              ? current
+              : { userId: currentUser.id, profile: null }
           );
         }
       });
