@@ -37,6 +37,10 @@ export default function OverrideOddsScreen() {
     if (!id) return;
 
     setErrorMessage(null);
+    if (!reason.trim()) {
+      setErrorMessage('Enter a reason.');
+      return;
+    }
     setIsSubmitting(true);
 
     try {

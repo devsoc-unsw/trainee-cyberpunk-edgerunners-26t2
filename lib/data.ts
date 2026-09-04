@@ -10,10 +10,15 @@ type MarketRow = {
   status: string;
   resolution_criteria: string | null;
   created_at: string;
+  resolved_outcome_id: string | null;
+  resolved_at: string | null;
+  deleted_at: string | null;
   outcomes: {
     id: string;
     name: string;
     pool: number;
+    liquidity: number;
+    wager_pool: number;
   }[];
 };
 
@@ -33,6 +38,8 @@ type AdminActionRow = {
   summary: string;
   reason: string;
   created_at: string;
+  target_type: string;
+  target_id: string | null;
   profiles: { username: string | null; email: string | null } | null;
 };
 
@@ -53,32 +60,16 @@ function getAdminAction(action: string): AdminAction['action'] {
   if (action === 'MARKET_CREATED') return 'MARKET_CREATED';
   if (action === 'MARKET_UPDATED') return 'MARKET_UPDATED';
   if (action === 'ODDS_OVERRIDE') return 'ODDS_OVERRIDE';
+  if (action === 'MARKET_CLOSED') return 'MARKET_CLOSED';
+  if (action === 'MARKET_REOPENED') return 'MARKET_REOPENED';
+  if (action === 'MARKET_RESOLVED') return 'MARKET_RESOLVED';
+  if (action === 'MARKET_DELETED') return 'MARKET_DELETED';
   if (action === 'BET_REFUNDED') return 'BET_REFUNDED';
   if (action === 'MARKET_VOIDED') return 'MARKET_VOIDED';
   if (action === 'ROLE_UPDATED') return 'ROLE_UPDATED';
   if (action === 'USER_SUSPENDED') return 'USER_SUSPENDED';
+  if (action === 'USER_REACTIVATED') return 'USER_REACTIVATED';
   return 'CREDIT_ADJUSTMENT';
-}
-
-async function recordAdminAction(input: {
-  action: AdminAction['action'];
-  target: string;
-  summary: string;
-  reason?: string;
-}) {
-  const { data: userData } = await supabase.auth.getUser();
-
-  if (!userData.user) return;
-
-  const { error } = await supabase.from('admin_actions').insert({
-    admin_id: userData.user.id,
-    action: input.action,
-    target: input.target,
-    summary: input.summary,
-    reason: input.reason ?? '',
-  });
-
-  if (error) throw error;
 }
 
 function getMarketOutcome(row: MarketRow, name: string) {
@@ -90,6 +81,8 @@ function mapMarket(row: MarketRow): Market {
     id: outcome.id,
     name: outcome.name.toUpperCase() === 'NO' ? 'NO' : 'YES',
     pool: outcome.pool,
+    liquidity: outcome.liquidity,
+    wagerPool: outcome.wager_pool,
   }));
   const yesOutcome = getMarketOutcome(row, 'yes');
   const totalPool = row.outcomes.reduce((total, outcome) => total + outcome.pool, 0);
@@ -103,6 +96,9 @@ function mapMarket(row: MarketRow): Market {
     closesAt: row.closes_at,
     resolutionCriteria: row.resolution_criteria ?? '',
     yesProbability: totalPool > 0 ? (yesOutcome?.pool ?? 0) / totalPool : 0.5,
+    resolvedOutcomeId: row.resolved_outcome_id ?? undefined,
+    resolvedAt: row.resolved_at ?? undefined,
+    deletedAt: row.deleted_at ?? undefined,
     outcomes,
   };
 }
@@ -111,13 +107,16 @@ function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : 'Something went wrong. Please try again.';
 }
 
-export async function fetchMarkets() {
-  const { data, error } = await supabase
+export async function fetchMarkets(options: { includeDeleted?: boolean } = {}) {
+  let query = supabase
     .from('markets')
     .select(
-      'id, title, description, category, closes_at, status, resolution_criteria, created_at, outcomes(id, name, pool)',
+      'id, title, description, category, closes_at, status, resolution_criteria, created_at, resolved_outcome_id, resolved_at, deleted_at, outcomes(id, name, pool, liquidity, wager_pool)',
     )
     .order('created_at', { ascending: false });
+
+  if (!options.includeDeleted) query = query.is('deleted_at', null);
+  const { data, error } = await query;
 
   if (error) throw error;
 
@@ -128,7 +127,7 @@ export async function fetchMarket(id: string) {
   const { data, error } = await supabase
     .from('markets')
     .select(
-      'id, title, description, category, closes_at, status, resolution_criteria, created_at, outcomes(id, name, pool)',
+      'id, title, description, category, closes_at, status, resolution_criteria, created_at, resolved_outcome_id, resolved_at, deleted_at, outcomes(id, name, pool, liquidity, wager_pool)',
     )
     .eq('id', id)
     .maybeSingle();
@@ -179,7 +178,7 @@ export async function fetchPositions(profileId: string) {
   const { data, error } = await supabase
     .from('positions')
     .select(
-      'id, profile_id, market_id, outcome_id, stake, created_at, markets(title), outcomes(name, pool)',
+      'id, profile_id, market_id, outcome_id, stake, payout, status, entry_probability, created_at, markets(title), outcomes(name, pool)',
     )
     .eq('profile_id', profileId)
     .order('created_at', { ascending: false });
@@ -192,6 +191,9 @@ export async function fetchPositions(profileId: string) {
     market_id: string;
     outcome_id: string;
     stake: number;
+    payout: number | null;
+    status: string;
+    entry_probability: number;
     created_at: string;
     markets: { title: string } | null;
     outcomes: { name: string; pool: number } | null;
@@ -202,7 +204,9 @@ export async function fetchPositions(profileId: string) {
     outcome: position.outcomes?.name.toUpperCase() === 'NO' ? 'NO' : 'YES',
     stake: position.stake,
     potentialPayout: position.stake,
-    status: 'OPEN',
+    status: position.status as Position['status'],
+    payout: position.payout ?? undefined,
+    entryProbability: position.entry_probability,
     marketTitle: position.markets?.title ?? 'Unknown market',
     placedAt: position.created_at,
   }));
@@ -228,33 +232,18 @@ export async function createMarket(input: {
   category: string;
   closesAt: string;
   resolutionCriteria: string;
+  yesPercentage?: number;
 }) {
-  const { data, error } = await supabase
-    .from('markets')
-    .insert({
-      title: input.title,
-      description: input.description,
-      category: input.category,
-      closes_at: input.closesAt,
-      resolution_criteria: input.resolutionCriteria,
-    })
-    .select('id')
-    .single();
-
-  if (error) throw error;
-
-  const { error: outcomesError } = await supabase.from('outcomes').insert([
-    { market_id: data.id, name: 'Yes', pool: 1 },
-    { market_id: data.id, name: 'No', pool: 1 },
-  ]);
-
-  if (outcomesError) throw outcomesError;
-  await recordAdminAction({
-    action: 'MARKET_CREATED',
-    target: input.title,
-    summary: 'Created market',
+  const { data, error } = await supabase.rpc('admin_create_market', {
+    p_title: input.title,
+    p_description: input.description,
+    p_category: input.category,
+    p_closes_at: input.closesAt,
+    p_resolution_criteria: input.resolutionCriteria,
+    p_yes_percentage: input.yesPercentage ?? 50,
   });
-  return data.id;
+  if (error) throw new Error(error.message);
+  return data;
 }
 
 export async function updateMarket(
@@ -267,71 +256,76 @@ export async function updateMarket(
     resolutionCriteria: string;
   },
 ) {
-  const { error } = await supabase
-    .from('markets')
-    .update({
-      title: input.title,
-      description: input.description,
-      category: input.category,
-      closes_at: input.closesAt,
-      resolution_criteria: input.resolutionCriteria,
-    })
-    .eq('id', id);
-
-  if (error) throw error;
-
-  await recordAdminAction({
-    action: 'MARKET_UPDATED',
-    target: input.title,
-    summary: 'Updated market details',
+  const { error } = await supabase.rpc('admin_update_market', {
+    p_market_id: id,
+    p_title: input.title,
+    p_description: input.description,
+    p_category: input.category,
+    p_closes_at: input.closesAt,
+    p_resolution_criteria: input.resolutionCriteria,
   });
+  if (error) throw new Error(error.message);
 }
 
-export async function updateMarketOdds(marketId: string, yesProbability: number, reason = '') {
-  const { data: outcomes, error } = await supabase
-    .from('outcomes')
-    .select('id, name')
-    .eq('market_id', marketId);
-
-  if (error) throw error;
-
-  const updates = (outcomes ?? []).map((outcome) =>
-    supabase
-      .from('outcomes')
-      .update({ pool: outcome.name.toLowerCase() === 'yes' ? Math.round(yesProbability * 100) : Math.round((1 - yesProbability) * 100) })
-      .eq('id', outcome.id),
-  );
-
-  const results = await Promise.all(updates);
-  const updateError = results.find((result) => result.error)?.error;
-
-  if (updateError) throw updateError;
-
-  await recordAdminAction({
-    action: 'ODDS_OVERRIDE',
-    target: marketId,
-    summary: `Changed YES odds to ${Math.round(yesProbability * 100)}%`,
-    reason,
+export async function updateMarketOdds(marketId: string, yesProbability: number, reason: string) {
+  const { error } = await supabase.rpc('admin_override_odds', {
+    p_market_id: marketId,
+    p_yes_percentage: Math.round(yesProbability * 100),
+    p_reason: reason,
   });
+  if (error) throw new Error(error.message);
 }
 
-export async function updateUserAccess(id: string, field: 'role' | 'status', value: string) {
-  const update = field === 'role' ? { role: value } : { status: value };
-  const { error } = await supabase.from('profiles').update(update).eq('id', id);
+async function runAdminRpc(error: { message: string } | null) {
+  if (error) throw new Error(error.message);
+}
 
-  if (error) throw error;
+export async function setMarketBetting(marketId: string, open: boolean) {
+  const { error } = await supabase.rpc('admin_set_market_betting', { p_market_id: marketId, p_open: open });
+  await runAdminRpc(error);
+}
 
-  await recordAdminAction({
-    action: field === 'role' ? 'ROLE_UPDATED' : 'USER_SUSPENDED',
-    target: id,
-    summary: field === 'role' ? 'Updated user role' : 'Suspended user',
-  });
+export async function resolveMarket(marketId: string, outcome: 'YES' | 'NO') {
+  const { error } = await supabase.rpc('admin_resolve_market', { p_market_id: marketId, p_outcome_name: outcome });
+  await runAdminRpc(error);
+}
+
+export async function voidMarket(marketId: string, reason: string) {
+  const { error } = await supabase.rpc('admin_void_market', { p_market_id: marketId, p_reason: reason });
+  await runAdminRpc(error);
+}
+
+export async function deleteMarket(marketId: string, reason: string) {
+  const { error } = await supabase.rpc('admin_delete_market', { p_market_id: marketId, p_reason: reason });
+  await runAdminRpc(error);
+}
+
+export async function refundBet(positionId: string, reason: string) {
+  const { error } = await supabase.rpc('admin_refund_bet', { p_position_id: positionId, p_reason: reason });
+  await runAdminRpc(error);
+}
+
+export async function adjustUserCredits(profileId: string, delta: number, reason: string, requestId: string) {
+  const { data, error } = await supabase.rpc('admin_adjust_credits', { p_profile_id: profileId, p_delta: delta, p_reason: reason, p_request_id: requestId });
+  await runAdminRpc(error);
+  if (data === null) throw new Error('The updated balance was not returned.');
+  return data;
+}
+
+export async function setUserRole(profileId: string, role: UserRole, reason: string) {
+  const { error } = await supabase.rpc('admin_set_user_role', { p_profile_id: profileId, p_role: role, p_reason: reason });
+  await runAdminRpc(error);
+}
+
+export async function setUserStatus(profileId: string, status: 'ACTIVE' | 'SUSPENDED', reason: string) {
+  const { error } = await supabase.rpc('admin_set_user_status', { p_profile_id: profileId, p_status: status, p_reason: reason });
+  await runAdminRpc(error);
 }
 
 export async function fetchAdminHistory() {
   const { data, error } = await supabase
     .from('admin_actions')
-    .select('id, admin_id, action, target, summary, reason, created_at, profiles(username, email)')
+    .select('id, admin_id, action, target, target_type, target_id, summary, reason, created_at, profiles(username, email)')
     .order('created_at', { ascending: false });
 
   if (error) throw error;
@@ -340,6 +334,8 @@ export async function fetchAdminHistory() {
     id: item.id,
     adminName: item.profiles?.username ?? item.profiles?.email ?? 'Admin',
     action: getAdminAction(item.action),
+    targetType: (['MARKET', 'BET', 'USER'].includes(item.target_type) ? item.target_type : 'OTHER') as AdminAction['targetType'],
+    targetId: item.target_id ?? undefined,
     target: item.target,
     summary: item.summary,
     reason: item.reason,
@@ -380,7 +376,7 @@ export async function fetchAdminBets() {
   const { data, error } = await supabase
     .from('positions')
     .select(
-      'id, profile_id, market_id, outcome_id, stake, created_at, profiles(username, email), markets(title, outcomes(name, pool)), outcomes(name, pool)',
+      'id, profile_id, market_id, outcome_id, stake, payout, status, entry_probability, created_at, profiles(username, email), markets(title, outcomes(name, pool)), outcomes(name, pool)',
     )
     .order('created_at', { ascending: false });
 
@@ -392,6 +388,9 @@ export async function fetchAdminBets() {
     market_id: string;
     outcome_id: string;
     stake: number;
+    payout: number | null;
+    status: string;
+    entry_probability: number;
     created_at: string;
     profiles: { username: string | null; email: string | null } | null;
     markets: { title: string; outcomes: { name: string; pool: number }[] } | null;
@@ -407,11 +406,13 @@ export async function fetchAdminBets() {
       outcome: bet.outcomes?.name.toUpperCase() === 'NO' ? 'NO' : 'YES',
       stake: bet.stake,
       potentialPayout: bet.stake,
-      status: 'OPEN',
+      status: bet.status as AdminBet['status'],
+      payout: bet.payout ?? undefined,
+      entryProbability: bet.entry_probability,
       userName: bet.profiles?.username ?? bet.profiles?.email ?? 'UNSW Student',
       marketTitle: bet.markets?.title ?? 'Unknown market',
       placedAt: bet.created_at,
-      oddsAtPlacement: totalPool > 0 ? yesPool / totalPool : 0.5,
+      oddsAtPlacement: bet.entry_probability ?? (totalPool > 0 ? yesPool / totalPool : 0.5),
     };
   });
 }

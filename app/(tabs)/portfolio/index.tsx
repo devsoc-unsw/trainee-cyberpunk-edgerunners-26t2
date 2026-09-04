@@ -118,6 +118,7 @@ export default function PortfolioScreen() {
           </View>
           <ThemedText variant="headline">{position.marketTitle}</ThemedText>
           <ThemedText variant="body">{position.stake.toLocaleString()} credits staked</ThemedText>
+          {position.payout !== undefined ? <ThemedText variant="body">{position.payout.toLocaleString()} credits paid</ThemedText> : null}
           {position.placedAt ? <ThemedText variant="caption">Placed {position.placedAt}</ThemedText> : null}
         </View>
       ))}

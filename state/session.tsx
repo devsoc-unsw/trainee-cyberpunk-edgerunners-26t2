@@ -2,13 +2,14 @@ import { createContext, use, useCallback, useEffect, useMemo, useRef, useState }
 import { AuthRetryableFetchError, type User } from '@supabase/supabase-js';
 
 import { supabase } from '@/lib/supabase';
-import { UserRole } from '@/types';
+import { AccountStatus, UserRole } from '@/types';
 
 export type Profile = {
   id: string;
   email: string;
   username: string | null;
   role: UserRole;
+  status: AccountStatus;
   balance: number;
   createdAt: string;
 };
@@ -54,7 +55,7 @@ type LoadedProfile = {
 
 async function fetchProfile(user: User): Promise<Profile> {
   const [profileResult, balanceResult] = await Promise.all([
-    supabase.from('profiles').select('id, username, role, created_at').eq('id', user.id).maybeSingle(),
+    supabase.from('profiles').select('id, username, role, status, created_at').eq('id', user.id).maybeSingle(),
     supabase.from('profile_balances').select('balance').eq('profile_id', user.id).maybeSingle(),
   ]);
 
@@ -70,7 +71,7 @@ async function fetchProfile(user: User): Promise<Profile> {
     const { data, error } = await supabase
       .from('profiles')
       .insert({ id: user.id })
-      .select('id, username, role, created_at')
+      .select('id, username, role, status, created_at')
       .single();
     if (error) throw error;
     profile = data;
@@ -81,6 +82,7 @@ async function fetchProfile(user: User): Promise<Profile> {
     email: user.email ?? '',
     username: profile.username,
     role: profile.role === 'ADMIN' ? 'ADMIN' : 'USER',
+    status: profile.status === 'SUSPENDED' ? 'SUSPENDED' : 'ACTIVE',
     balance: balanceResult.data?.balance ?? 0,
     createdAt: profile.created_at,
   };

@@ -73,7 +73,7 @@ insert into public.ledger (
     delta,
     reason
 )
-select seed.id, seed.profile_id, seed.delta, seed.reason
+select seed.id::uuid, seed.profile_id::uuid, seed.delta, seed.reason
 from (values
     (
         '77777777-7777-7777-7777-777777777777',
@@ -91,7 +91,7 @@ from (values
 where not exists (
     select 1
     from public.ledger
-    where ledger.profile_id = seed.profile_id
+    where ledger.profile_id = seed.profile_id::uuid
       and ledger.reason = 'initial_credit'
 );
 
