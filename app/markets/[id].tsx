@@ -113,7 +113,7 @@ export default function MarketDetailsScreen() {
   }
 
   return (
-    <Screen>
+    <Screen automaticallyAdjustKeyboardInsets>
       <View style={{ gap: spacing.sm }}>
         <ThemedText variant="caption" style={{ color: colors.accent }}>
           {market.category.toUpperCase()} · {market.status}
