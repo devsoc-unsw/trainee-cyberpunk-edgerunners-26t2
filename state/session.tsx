@@ -1,5 +1,6 @@
 import { createContext, use, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AuthRetryableFetchError, type User } from '@supabase/supabase-js';
+import { AppState } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
 import { AccountStatus, UserRole } from '@/types';
@@ -176,6 +177,19 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     loadProfile(user);
+  }, [user, loadProfile]);
+
+  useEffect(() => {
+    let previousState = AppState.currentState;
+
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (previousState !== 'active' && nextState === 'active' && user) {
+        void loadProfile(user);
+      }
+      previousState = nextState;
+    });
+
+    return () => subscription.remove();
   }, [user, loadProfile]);
 
   // Derived rather than stored, so signing out cannot leave a stale profile

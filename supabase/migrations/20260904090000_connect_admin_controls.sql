@@ -94,6 +94,13 @@ alter table public.positions
         or (status in ('WON', 'LOST', 'REFUNDED') and settled_at is not null and payout is not null)
     );
 
+alter table public.positions
+    drop constraint if exists positions_profile_id_market_id_outcome_id_key;
+
+create unique index if not exists positions_one_open_per_profile_market_idx
+on public.positions(profile_id, market_id)
+where status = 'OPEN';
+
 alter table public.ledger
     drop constraint if exists ledger_reason_check;
 
@@ -984,7 +991,16 @@ create policy "Users can read markets"
 on public.markets
 for select
 to authenticated
-using (deleted_at is null or (select public.is_admin()));
+using (
+    deleted_at is null
+    or (select public.is_admin())
+    or exists (
+        select 1
+        from public.positions
+        where positions.market_id = markets.id
+          and positions.profile_id = (select auth.uid())
+    )
+);
 
 revoke insert, update, delete on table public.markets from authenticated;
 revoke insert, update, delete on table public.outcomes from authenticated;
