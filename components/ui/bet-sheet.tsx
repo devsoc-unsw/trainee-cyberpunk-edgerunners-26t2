@@ -1,19 +1,13 @@
+import { Alert, StyleSheet, Text, View, Pressable } from "react-native";
+import { FullWindowOverlay } from "react-native-screens";
 import {
-  Alert,
-  Keyboard,
-  KeyboardEvent,
-  Modal,
-  StyleSheet,
-  Text,
-  TouchableWithoutFeedback,
-  TextInput,
-  View,
-  Pressable,
-  useWindowDimensions,
-} from "react-native";
+  BottomSheetModal,
+  BottomSheetView,
+  BottomSheetTextInput,
+} from "@gorhom/bottom-sheet";
 import { colors, spacing, radius, typography } from "@/theme";
 import { Market, Outcome } from "@/types";
-import { useEffect, useState } from "react";
+import { useState, useEffect, useRef } from "react";
 
 type Props = {
   market: Market;
@@ -22,15 +16,12 @@ type Props = {
 };
 
 export function BetSheet(props: Props) {
-  const { height } = useWindowDimensions();
-  const sheetHeight = height * 0.4;
   const { market, outcome, onClose } = props;
   const p =
     outcome === "YES" ? market.yesProbability : 1 - market.yesProbability;
   const [stake, setStake] = useState("");
   const stakeNumber = Number(stake) || 0;
   const payout = Math.round(stakeNumber / p);
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   const handleConfirm = () => {
     Alert.alert("Confirm Bet", `Betting ${stake} credits on ${outcome}`, [
@@ -39,31 +30,22 @@ export function BetSheet(props: Props) {
     ]);
   };
 
+  const sheetRef = useRef<BottomSheetModal>(null);
   useEffect(() => {
-    const show = Keyboard.addListener(
-      "keyboardWillShow",
-      (e: KeyboardEvent) => {
-        setKeyboardHeight(e.endCoordinates.height);
-      },
-    );
-    const hide = Keyboard.addListener("keyboardWillHide", () => {
-      setKeyboardHeight(0);
-    });
-    return () => {
-      show.remove();
-      hide.remove();
-    };
+    sheetRef.current?.present();
   }, []);
 
   return (
-    <Modal transparent animationType="none" visible>
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View
-          style={[
-            styles.sheet,
-            { height: sheetHeight, bottom: keyboardHeight },
-          ]}
-        >
+    <BottomSheetModal
+      ref={sheetRef}
+      onDismiss={onClose}
+      containerComponent={FullWindowOverlay}
+      enablePanDownToClose
+      backgroundStyle={{ backgroundColor: colors.surface }}
+      handleIndicatorStyle={{ backgroundColor: colors.muted }}
+    >
+      <BottomSheetView>
+        <View style={styles.sheet}>
           <Text style={styles.title}>
             {market.title} Betting{" "}
             <Text style={{ color: outcome === "YES" ? colors.yes : colors.no }}>
@@ -72,7 +54,7 @@ export function BetSheet(props: Props) {
             at {Math.round(p * 100)}%
           </Text>
           <Text style={styles.heading}>Stake</Text>
-          <TextInput
+          <BottomSheetTextInput
             value={stake}
             onChangeText={setStake}
             keyboardType="number-pad"
@@ -94,19 +76,13 @@ export function BetSheet(props: Props) {
             <Text style={styles.btnText}>Cancel</Text>
           </Pressable>
         </View>
-      </TouchableWithoutFeedback>
-    </Modal>
+      </BottomSheetView>
+    </BottomSheetModal>
   );
 }
 
 const styles = StyleSheet.create({
   sheet: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: radius.lg,
-    borderTopRightRadius: radius.lg,
     paddingHorizontal: spacing.xxl,
     paddingVertical: spacing.xxl,
     gap: spacing.md,

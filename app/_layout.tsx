@@ -1,27 +1,30 @@
-import { DarkTheme, ThemeProvider } from 'expo-router';
-import { Stack } from 'expo-router/stack';
-import { StatusBar } from 'expo-status-bar';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { ActivityIndicator, View } from 'react-native';
+import { DarkTheme, ThemeProvider } from "expo-router";
+import { Stack } from "expo-router/stack";
+import { StatusBar } from "expo-status-bar";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { ActivityIndicator, View } from "react-native";
 
-import { AccessibilityProvider } from '@/state/accessibility';
-import { SessionProvider, useSession } from '@/state/session';
-import { colors } from '@/theme';
+import { AccessibilityProvider } from "@/state/accessibility";
+import { SessionProvider, useSession } from "@/state/session";
+import { colors } from "@/theme";
+import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 
 export default function RootLayout() {
   // Outermost, and outside SessionProvider: these preferences belong to the
   // device rather than the account, so they apply on the login screen too and
   // survive signing out.
   return (
-    <GestureHandlerRootView style={{ flex : 1 }}>
-      <AccessibilityProvider>
-        <SessionProvider>
-          <ThemeProvider value={DarkTheme}>
-            <StatusBar style="light" />
-            <RootStack />
-          </ThemeProvider>
-        </SessionProvider>
-      </AccessibilityProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <BottomSheetModalProvider>
+        <AccessibilityProvider>
+          <SessionProvider>
+            <ThemeProvider value={DarkTheme}>
+              <StatusBar style="light" />
+              <RootStack />
+            </ThemeProvider>
+          </SessionProvider>
+        </AccessibilityProvider>
+      </BottomSheetModalProvider>
     </GestureHandlerRootView>
   );
 }
@@ -40,12 +43,15 @@ function RootStack() {
       <View
         style={{
           flex: 1,
-          alignItems: 'center',
-          justifyContent: 'center',
+          alignItems: "center",
+          justifyContent: "center",
           backgroundColor: colors.background,
         }}
       >
-        <ActivityIndicator color={colors.accent} accessibilityLabel="Loading UNSWager" />
+        <ActivityIndicator
+          color={colors.accent}
+          accessibilityLabel="Loading UNSWager"
+        />
       </View>
     );
   }
@@ -55,7 +61,7 @@ function RootStack() {
   return (
     <Stack
       screenOptions={{
-        headerBackButtonDisplayMode: 'minimal',
+        headerBackButtonDisplayMode: "minimal",
         headerShadowVisible: false,
       }}
     >
@@ -73,7 +79,7 @@ function RootStack() {
       <Stack.Protected guard={isSignedIn}>
         <Stack.Screen name="onboarding" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="markets/[id]" options={{ title: 'Market' }} />
+        <Stack.Screen name="markets/[id]" options={{ title: "Market" }} />
         <Stack.Screen name="admin" options={{ headerShown: false }} />
       </Stack.Protected>
     </Stack>
