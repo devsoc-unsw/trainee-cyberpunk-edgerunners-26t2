@@ -14,6 +14,7 @@ export default function CreateMarketScreen() {
   const [category, setCategory] = useState('');
   const [closesAt, setClosesAt] = useState('');
   const [resolutionCriteria, setResolutionCriteria] = useState('');
+  const [yesPercentage, setYesPercentage] = useState('50');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -30,6 +31,12 @@ export default function CreateMarketScreen() {
       return;
     }
 
+    const parsedYesPercentage = Number(yesPercentage);
+    if (!Number.isInteger(parsedYesPercentage) || parsedYesPercentage < 1 || parsedYesPercentage > 99) {
+      setErrorMessage('YES percentage must be a whole number from 1 to 99.');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -39,6 +46,7 @@ export default function CreateMarketScreen() {
         category: category.trim(),
         closesAt,
         resolutionCriteria: resolutionCriteria.trim(),
+        yesPercentage: parsedYesPercentage,
       });
       router.replace('/admin/markets');
     } catch (error) {
@@ -68,6 +76,9 @@ export default function CreateMarketScreen() {
         </AdminField>
         <AdminField label="Resolution criteria">
           <AdminTextInput value={resolutionCriteria} onChangeText={setResolutionCriteria} placeholder="What counts as YES?" multiline numberOfLines={4} accessibilityLabel="Resolution criteria" />
+        </AdminField>
+        <AdminField label="Starting YES percentage">
+          <AdminTextInput value={yesPercentage} onChangeText={setYesPercentage} keyboardType="number-pad" accessibilityLabel="Starting YES percentage" />
         </AdminField>
         {errorMessage ? <ThemedText style={{ color: colors.no }}>{errorMessage}</ThemedText> : null}
         <AdminActionButton disabled={isSubmitting} onPress={handleCreateMarket}>{isSubmitting ? 'Creating market…' : 'Create market'}</AdminActionButton>

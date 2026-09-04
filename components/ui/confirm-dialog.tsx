@@ -1,4 +1,4 @@
-import { Modal, Pressable, StyleSheet, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { PrimaryButton } from '@/components/ui/form';
 import { ThemedText } from '@/components/ui/themed-text';
@@ -14,6 +14,10 @@ type Props = {
   /** Renders the confirm action in the destructive colour. */
   destructive?: boolean;
   isBusy?: boolean;
+  reason?: string;
+  reasonLabel?: string;
+  errorMessage?: string | null;
+  onReasonChange?: (reason: string) => void;
   onConfirm: () => void;
   onCancel: () => void;
 };
@@ -26,6 +30,10 @@ export function ConfirmDialog({
   cancelLabel = 'Cancel',
   destructive = false,
   isBusy = false,
+  reason,
+  reasonLabel,
+  errorMessage,
+  onReasonChange,
   onConfirm,
   onCancel,
 }: Props) {
@@ -80,11 +88,45 @@ export function ConfirmDialog({
             {message ? <ThemedText variant="body" style={{ color: colors.muted }}>{message}</ThemedText> : null}
           </View>
 
+          {reasonLabel && onReasonChange ? (
+            <View style={{ gap: spacing.sm }}>
+              <ThemedText variant="subhead">{reasonLabel}</ThemedText>
+              <TextInput
+                accessibilityLabel={reasonLabel}
+                autoFocus
+                multiline
+                onChangeText={onReasonChange}
+                placeholder="Enter a reason"
+                placeholderTextColor={colors.inputPlaceholder}
+                value={reason}
+                style={{
+                  minHeight: 88,
+                  padding: spacing.md,
+                  backgroundColor: colors.background,
+                  borderColor: errorMessage ? colors.no : colors.border,
+                  borderWidth: 1,
+                  borderRadius: radius.md,
+                  borderCurve: 'continuous',
+                  color: colors.inputText,
+                  fontSize: 16,
+                  textAlignVertical: 'top',
+                }}
+              />
+            </View>
+          ) : null}
+
+          {errorMessage ? (
+            <ThemedText variant="caption" style={{ color: colors.no }} accessibilityLiveRegion="polite">
+              {errorMessage}
+            </ThemedText>
+          ) : null}
+
           <View style={{ gap: spacing.sm }}>
             <PrimaryButton
               label={confirmLabel}
               tone={destructive ? 'danger' : 'accent'}
               isBusy={isBusy}
+              disabled={Boolean(reasonLabel && !reason?.trim())}
               onPress={onConfirm}
             />
             <PrimaryButton label={cancelLabel} tone="quiet" disabled={isBusy} onPress={onCancel} />
