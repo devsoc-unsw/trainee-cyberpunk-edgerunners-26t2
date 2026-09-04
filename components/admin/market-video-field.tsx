@@ -1,15 +1,18 @@
-import { useEvent } from 'expo';
-import { useVideoPlayer, VideoView } from 'expo-video';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { useEvent } from "expo";
+import { useVideoPlayer, VideoView } from "expo-video";
+import { Pressable, StyleSheet, View } from "react-native";
 
-import { AdminField, AdminTextInput } from '@/components/admin/admin-components';
-import { ThemedText } from '@/components/ui/themed-text';
+import {
+  AdminField,
+  AdminTextInput,
+} from "@/components/admin/admin-components";
+import { ThemedText } from "@/components/ui/themed-text";
 import {
   getVideoPublicUrl,
   pickMarketVideo,
   type PickedMarketVideo,
-} from '@/lib/market-video';
-import { colors, radius, spacing } from '@/theme';
+} from "@/lib/market-video";
+import { colors, radius, spacing } from "@/theme";
 
 type Props = {
   path: string;
@@ -30,12 +33,17 @@ function VideoPreview({ uri }: { uri: string }) {
     nextPlayer.muted = true;
     nextPlayer.play();
   });
-  const { status } = useEvent(player, 'statusChange', { status: player.status });
+  const { status } = useEvent(player, "statusChange", {
+    status: player.status,
+  });
 
-  if (status === 'error') {
+  if (status === "error") {
     return (
       <View style={[styles.preview, styles.previewFallback]}>
-        <ThemedText variant="subhead">Preview unavailable. Check that this path is public and points to an MP4.</ThemedText>
+        <ThemedText variant="subhead">
+          Preview unavailable. Check that this path is public and points to an
+          MP4.
+        </ThemedText>
       </View>
     );
   }
@@ -64,18 +72,24 @@ export function MarketVideoField({
   onError,
   onCancel,
 }: Props) {
-  const previewUri = picked?.uri ?? (path.trim() ? getVideoPublicUrl(path.trim().replace(/^\/+/, '')) : null);
+  const previewUri =
+    picked?.uri ??
+    (path.trim() ? getVideoPublicUrl(path.trim().replace(/^\/+/, "")) : null);
 
   const chooseVideo = async () => {
     try {
       const next = await pickMarketVideo();
       if (next) {
         onPicked(next);
-        onPathChange('');
+        onPathChange("");
         onDurationChange(String(next.durationMs));
       }
     } catch (error) {
-      onError(error instanceof Error ? error.message : 'The video could not be selected.');
+      onError(
+        error instanceof Error
+          ? error.message
+          : "The video could not be selected.",
+      );
     }
   };
 
@@ -84,18 +98,22 @@ export function MarketVideoField({
       <View style={styles.headingRow}>
         <View style={{ flex: 1, gap: spacing.xs }}>
           <ThemedText variant="headline">Background video</ThemedText>
-          <ThemedText variant="subhead">Optional MP4, up to 30 seconds and 50 MB.</ThemedText>
+          <ThemedText variant="subhead">
+            Optional MP4, up to 30 seconds and 50 MB.
+          </ThemedText>
         </View>
         {(picked || path) && !disabled ? (
           <Pressable
             accessibilityRole="button"
             onPress={() => {
               onPicked(null);
-              onPathChange('');
-              onDurationChange('');
+              onPathChange("");
+              onDurationChange("");
             }}
           >
-            <ThemedText variant="subhead" style={{ color: colors.no }}>Remove</ThemedText>
+            <ThemedText variant="subhead" style={{ color: colors.no }}>
+              Remove
+            </ThemedText>
           </Pressable>
         ) : null}
       </View>
@@ -104,16 +122,20 @@ export function MarketVideoField({
         accessibilityRole="button"
         disabled={disabled}
         onPress={chooseVideo}
-        style={({ pressed }) => [styles.chooseButton, { opacity: disabled ? 0.45 : pressed ? 0.72 : 1 }]}
+        style={({ pressed }) => [
+          styles.chooseButton,
+          { opacity: disabled ? 0.45 : pressed ? 0.72 : 1 },
+        ]}
       >
-        <ThemedText style={{ color: colors.accentText, fontWeight: '700' }}>
-          {picked ? 'Choose a different MP4' : 'Choose MP4 from device'}
+        <ThemedText style={{ color: colors.accentText, fontWeight: "700" }}>
+          {picked ? "Choose a different MP4" : "Choose MP4 from device"}
         </ThemedText>
       </Pressable>
 
       {picked ? (
         <ThemedText variant="subhead" selectable>
-          {picked.fileName} · {(picked.fileSize / 1024 / 1024).toFixed(1)} MB · {(picked.durationMs / 1000).toFixed(1)}s
+          {picked.fileName} · {(picked.fileSize / 1024 / 1024).toFixed(1)} MB ·{" "}
+          {(picked.durationMs / 1000).toFixed(1)}s
         </ThemedText>
       ) : (
         <>
@@ -148,13 +170,22 @@ export function MarketVideoField({
       {progress !== null && progress !== undefined ? (
         <View style={{ gap: spacing.xs }}>
           <View style={styles.progressTrack}>
-            <View style={[styles.progressFill, { width: `${Math.round(progress * 100)}%` }]} />
+            <View
+              style={[
+                styles.progressFill,
+                { width: `${Math.round(progress * 100)}%` },
+              ]}
+            />
           </View>
           <View style={styles.headingRow}>
-            <ThemedText variant="subhead">Uploading {Math.round(progress * 100)}%</ThemedText>
+            <ThemedText variant="subhead">
+              Uploading {Math.round(progress * 100)}%
+            </ThemedText>
             {onCancel ? (
               <Pressable accessibilityRole="button" onPress={onCancel}>
-                <ThemedText variant="subhead" style={{ color: colors.no }}>Cancel upload</ThemedText>
+                <ThemedText variant="subhead" style={{ color: colors.no }}>
+                  Cancel upload
+                </ThemedText>
               </Pressable>
             ) : null}
           </View>
@@ -165,11 +196,44 @@ export function MarketVideoField({
 }
 
 const styles = StyleSheet.create({
-  container: { gap: spacing.md, padding: spacing.lg, backgroundColor: colors.surface, borderRadius: radius.lg },
-  headingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
-  chooseButton: { minHeight: 48, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.lg, borderRadius: radius.md, backgroundColor: colors.accent },
-  preview: { width: '100%', aspectRatio: 9 / 16, maxHeight: 420, borderRadius: radius.md, overflow: 'hidden', backgroundColor: colors.background },
-  previewFallback: { alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
-  progressTrack: { height: 6, overflow: 'hidden', borderRadius: radius.full, backgroundColor: colors.border },
-  progressFill: { height: '100%', backgroundColor: colors.accent },
+  container: {
+    gap: spacing.md,
+    padding: spacing.lg,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+  },
+  headingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.md,
+  },
+  chooseButton: {
+    minHeight: 48,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.md,
+    backgroundColor: colors.accent,
+  },
+  preview: {
+    width: "100%",
+    aspectRatio: 9 / 16,
+    maxHeight: 420,
+    borderRadius: radius.md,
+    overflow: "hidden",
+    backgroundColor: colors.background,
+  },
+  previewFallback: {
+    alignItems: "center",
+    justifyContent: "center",
+    padding: spacing.lg,
+  },
+  progressTrack: {
+    height: 6,
+    overflow: "hidden",
+    borderRadius: radius.full,
+    backgroundColor: colors.border,
+  },
+  progressFill: { height: "100%", backgroundColor: colors.accent },
 });
