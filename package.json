@@ -5,7 +5,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1119.0",
     "@supabase/supabase-js": "^2.112.3",
-    "expo": "~57.0.17",
+    "expo": "~57.0.19",
     "expo-constants": "~57.0.13",
     "expo-dev-client": "~57.0.16",
     "expo-linear-gradient": "~57.0.1",

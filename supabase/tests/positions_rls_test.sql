@@ -1,6 +1,6 @@
 begin;
 
-select plan(5);
+select plan(6);
 
 
 insert into auth.users (id, email)
@@ -66,6 +66,10 @@ values
         100
     );
 
+update public.markets
+set deleted_at = now()
+where id = '33333333-3333-3333-3333-333333333333';
+
 
 insert into public.ledger (
     id,
@@ -73,7 +77,7 @@ insert into public.ledger (
     delta,
     reason
 )
-select seed.id, seed.profile_id, seed.delta, seed.reason
+select seed.id::uuid, seed.profile_id::uuid, seed.delta, seed.reason
 from (values
     (
         '77777777-7777-7777-7777-777777777777',
@@ -91,7 +95,7 @@ from (values
 where not exists (
     select 1
     from public.ledger
-    where ledger.profile_id = seed.profile_id
+    where ledger.profile_id = seed.profile_id::uuid
       and ledger.reason = 'initial_credit'
 );
 
@@ -124,6 +128,17 @@ select is(
     (select count(*) from public.positions),
     1::bigint,
     'User can read their own position'
+);
+
+
+select is(
+    (
+        select title
+        from public.markets
+        where id = '33333333-3333-3333-3333-333333333333'
+    ),
+    'Test Market',
+    'User can read a soft-deleted market referenced by their position'
 );
 
 

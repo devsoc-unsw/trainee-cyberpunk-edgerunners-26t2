@@ -43,7 +43,7 @@ function formatRelativeDate(dateValue?: string) {
 
 function getPositionProfit(position: Position) {
   if (position.status === 'WON') {
-    return position.potentialPayout - position.stake;
+    return (position.payout ?? position.potentialPayout) - position.stake;
   }
   if (position.status === 'LOST') {
     return -position.stake;
@@ -76,7 +76,19 @@ function BalanceCard({ balance, todayProfit, winRate }: { balance: number; today
 function BetCard({ position, history = false }: { position: Position; history?: boolean }) {
   const isYes = position.outcome === 'YES';
   const outcomeColor = isYes ? colors.yes : colors.no;
-  const historyAmount = position.status === 'WON' ? position.potentialPayout : position.stake;
+  const isRefunded = position.status === 'REFUNDED';
+  const historyAmount =
+    position.status === 'WON'
+      ? (position.payout ?? position.potentialPayout)
+      : position.stake;
+  const historyColor = isRefunded
+    ? colors.muted
+    : position.status === 'WON'
+      ? colors.yes
+      : colors.no;
+  const historyLabel = isRefunded
+    ? `Refunded ${formatCredits(historyAmount)} CR`
+    : `${position.status === 'WON' ? '+' : '-'} ${formatCredits(historyAmount)} CR`;
 
   return (
     <View style={styles.betCard}>
@@ -86,8 +98,8 @@ function BetCard({ position, history = false }: { position: Position; history?: 
         </ThemedText>
 
         {history ? (
-          <ThemedText style={[styles.historyResult, { color: position.status === 'WON' ? colors.yes : colors.no }]}>
-            {position.status === 'WON' ? '+' : '-'} {formatCredits(historyAmount)} CR
+          <ThemedText style={[styles.historyResult, { color: historyColor }]}>
+            {historyLabel}
           </ThemedText>
         ) : (
           <ThemedText style={[styles.outcome, { color: outcomeColor }]}>{position.outcome}</ThemedText>
@@ -162,9 +174,18 @@ export default function PortfolioScreen() {
     () => positions.filter((position) => position.status !== 'OPEN'),
     [positions]
   );
-  const winRate = historyPositions.length
+  const settledPositions = useMemo(
+    () =>
+      historyPositions.filter(
+        (position) => position.status === 'WON' || position.status === 'LOST'
+      ),
+    [historyPositions]
+  );
+  const winRate = settledPositions.length
     ? Math.round(
-        (historyPositions.filter((position) => position.status === 'WON').length / historyPositions.length) * 100
+        (settledPositions.filter((position) => position.status === 'WON').length /
+          settledPositions.length) *
+          100
       )
     : 0;
   const todayProfit = historyPositions
