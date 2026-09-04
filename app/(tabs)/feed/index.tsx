@@ -10,14 +10,14 @@ import {
   View,
 } from "react-native";
 import { LineChart } from "react-native-gifted-charts";
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect } from "expo-router";
 
-import { fetchMarketHistories, fetchMarkets } from '@/lib/data';
-import { colors, radius, spacing, typography } from '@/theme';
-import { Market, MarketPricePoint, Outcome } from '@/types';
-import { BalanceHeader } from '@/components/ui/balance-header';
-import { MarketCountdown } from '@/components/ui/market-countdown';
-import { BetSheet } from '@/components/ui/bet-sheet';
+import { fetchMarketHistories, fetchMarkets } from "@/lib/data";
+import { colors, radius, spacing, typography } from "@/theme";
+import { Market, MarketPricePoint, Outcome } from "@/types";
+import { BalanceHeader } from "@/components/ui/balance-header";
+import { MarketCountdown } from "@/components/ui/market-countdown";
+import { BetSheet } from "@/components/ui/bet-sheet";
 
 type FeedItem = {
   key: string;
@@ -166,7 +166,9 @@ function MarketPage(props: MarketPageProps) {
 
 export default function FeedScreen() {
   const [markets, setMarkets] = useState<Market[]>([]);
-  const [histories, setHistories] = useState<Record<string, MarketPricePoint[]>>({});
+  const [histories, setHistories] = useState<
+    Record<string, MarketPricePoint[]>
+  >({});
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [viewport, setViewport] = useState({ height: 0, width: 0 });
@@ -177,44 +179,46 @@ export default function FeedScreen() {
 
   // Refetched on focus so returning from placing a bet shows the new point
   // rather than the chart the screen was mounted with.
+  const loadMarkets = useCallback((isMounted: () => boolean = () => true) => {
+    return fetchMarkets()
+      .then(async (nextMarkets) => {
+        if (!isMounted()) return;
+
+        setMarkets(nextMarkets);
+        setErrorMessage(null);
+
+        // A failure here costs the chart its history, not the feed itself, so
+        // it falls back to a flat line instead of blanking the screen.
+        try {
+          const nextHistories = await fetchMarketHistories(
+            nextMarkets.map((market) => market.id),
+          );
+
+          if (isMounted()) setHistories(nextHistories);
+        } catch {
+          if (isMounted()) setHistories({});
+        }
+      })
+      .catch(() => {
+        if (isMounted()) {
+          setErrorMessage("Markets could not be loaded. Please try again.");
+        }
+      })
+      .finally(() => {
+        if (isMounted()) {
+          setIsLoading(false);
+        }
+      });
+  }, []);
+
   useFocusEffect(
     useCallback(() => {
-      let isMounted = true;
-
-      void fetchMarkets()
-        .then(async (nextMarkets) => {
-          if (!isMounted) return;
-
-          setMarkets(nextMarkets);
-          setErrorMessage(null);
-
-          // A failure here costs the chart its history, not the feed itself, so
-          // it falls back to a flat line instead of blanking the screen.
-          try {
-            const nextHistories = await fetchMarketHistories(
-              nextMarkets.map((market) => market.id),
-            );
-
-            if (isMounted) setHistories(nextHistories);
-          } catch {
-            if (isMounted) setHistories({});
-          }
-        })
-        .catch(() => {
-          if (isMounted) {
-            setErrorMessage('Markets could not be loaded. Please try again.');
-          }
-        })
-        .finally(() => {
-          if (isMounted) {
-            setIsLoading(false);
-          }
-        });
-
+      let mounted = true;
+      void loadMarkets(() => mounted);
       return () => {
-        isMounted = false;
+        mounted = false;
       };
-    }, []),
+    }, [loadMarkets]),
   );
 
   const handleLayout = useCallback((event: LayoutChangeEvent) => {
@@ -283,6 +287,10 @@ export default function FeedScreen() {
           market={activeBet.market}
           outcome={activeBet.outcome}
           onClose={() => setActiveBet(null)}
+          onPlaced={() => {
+            setActiveBet(null);
+            void loadMarkets();
+          }}
         />
       )}
     </View>
@@ -311,9 +319,9 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   categoryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     gap: spacing.sm,
   },
   category: {

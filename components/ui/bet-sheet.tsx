@@ -15,10 +15,11 @@ type Props = {
   market: Market;
   outcome: Outcome;
   onClose: () => void;
+  onPlaced: () => void;
 };
 
 export function BetSheet(props: Props) {
-  const { market, outcome, onClose } = props;
+  const { market, outcome, onClose, onPlaced } = props;
   const p =
     outcome === "YES" ? market.yesProbability : 1 - market.yesProbability;
   const [stake, setStake] = useState("");
@@ -47,7 +48,7 @@ export function BetSheet(props: Props) {
       const result = await placeBet(outcomeId, stakeNumber);
       setBalance(result.balance);
       setIsConfirmVisible(false);
-      onClose();
+      onPlaced();
     } catch (e) {
       setErrorMessage(e instanceof Error ? e.message : "Something went wrong.");
     } finally {
@@ -111,7 +112,7 @@ export function BetSheet(props: Props) {
         <Pressable
           onPress={handleConfirm}
           disabled={!outcomeId}
-          style={[styles.confirmBtn, !outcomeId && styles.btnDisabled]}
+          style={[styles.confirmBtn, keyboardUp && styles.btnDisabled]}
         >
           <Text style={styles.btnText}>
             {`Bet ${stakeNumber} on ${outcome}`}
