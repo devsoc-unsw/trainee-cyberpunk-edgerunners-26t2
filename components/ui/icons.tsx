@@ -38,3 +38,17 @@ export function EyeOffIcon({ size = 22, color = colors.muted }: IconProps) {
     </Svg>
   );
 }
+
+export function ChevronLeftIcon({ size = 24, color = colors.text }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M15 5l-7 7 7 7"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}

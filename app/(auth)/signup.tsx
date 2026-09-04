@@ -71,7 +71,11 @@ export default function SignupScreen() {
   }
 
   return (
-    <Screen centered contentContainerStyle={{ paddingVertical: spacing.xxxl }}>
+    <Screen
+      centered
+      automaticallyAdjustKeyboardInsets
+      contentContainerStyle={{ paddingVertical: spacing.xxxl }}
+    >
       <View style={{ gap: spacing.sm }}>
         <ThemedText variant="largeTitle">Create account</ThemedText>
       </View>
