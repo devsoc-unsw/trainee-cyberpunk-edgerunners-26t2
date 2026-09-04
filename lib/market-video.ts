@@ -7,6 +7,11 @@ import { supabase, VIDEO_BUCKET } from '@/lib/supabase';
 export const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
 export const MAX_VIDEO_DURATION_MS = 30_000;
 
+/** iOS may report fractional milliseconds; Postgres stores whole milliseconds. */
+export function normalizeVideoDurationMs(durationMs: number) {
+  return Math.ceil(durationMs);
+}
+
 export type PickedMarketVideo = {
   uri: string;
   fileName: string;
@@ -33,7 +38,11 @@ export function validateVideoMetadata(input: {
   if (!input.fileSize || input.fileSize > MAX_VIDEO_BYTES) {
     throw new Error('The video must be 50 MB or smaller.');
   }
-  if (!input.durationMs || input.durationMs > MAX_VIDEO_DURATION_MS) {
+  if (
+    !input.durationMs
+    || !Number.isFinite(input.durationMs)
+    || input.durationMs > MAX_VIDEO_DURATION_MS
+  ) {
     throw new Error('The video must be 30 seconds or shorter.');
   }
 }
@@ -82,10 +91,13 @@ export async function pickMarketVideo(): Promise<PickedMarketVideo | null> {
   if (result.canceled) return null;
 
   const asset = result.assets[0];
+  const durationMs = asset.duration == null
+    ? null
+    : normalizeVideoDurationMs(asset.duration);
   validateVideoMetadata({
     fileName: asset.fileName,
     fileSize: asset.fileSize,
-    durationMs: asset.duration,
+    durationMs,
     mimeType: asset.mimeType,
   });
 
@@ -93,7 +105,7 @@ export async function pickMarketVideo(): Promise<PickedMarketVideo | null> {
     uri: asset.uri,
     fileName: asset.fileName ?? 'market-video.mp4',
     fileSize: asset.fileSize!,
-    durationMs: asset.duration!,
+    durationMs: durationMs!,
     mimeType: 'video/mp4',
     file: asset.file,
   };

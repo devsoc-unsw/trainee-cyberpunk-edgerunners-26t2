@@ -8,7 +8,7 @@ import { PlaceholderState } from '@/components/ui/placeholder-state';
 import { Screen } from '@/components/ui/screen';
 import { ThemedText } from '@/components/ui/themed-text';
 import { fetchMarket, updateMarket } from '@/lib/data';
-import { removeUploadedVideo, uploadMarketVideo, validateExistingVideo, type PickedMarketVideo } from '@/lib/market-video';
+import { normalizeVideoDurationMs, removeUploadedVideo, uploadMarketVideo, validateExistingVideo, type PickedMarketVideo } from '@/lib/market-video';
 import { colors, spacing } from '@/theme';
 import { Market } from '@/types';
 
@@ -77,7 +77,7 @@ export default function EditMarketScreen() {
         setUploadController(null);
         setUploadProgress(null);
         nextVideoPath = uploadedPath;
-        nextVideoDuration = pickedVideo.durationMs;
+        nextVideoDuration = normalizeVideoDurationMs(pickedVideo.durationMs);
       } else if (videoPath.trim()) {
         nextVideoDuration = Number(videoDuration);
         nextVideoPath = await validateExistingVideo(videoPath, nextVideoDuration);

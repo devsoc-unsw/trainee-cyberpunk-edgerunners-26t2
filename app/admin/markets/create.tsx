@@ -7,7 +7,7 @@ import { MarketVideoField } from '@/components/admin/market-video-field';
 import { Screen } from '@/components/ui/screen';
 import { ThemedText } from '@/components/ui/themed-text';
 import { createMarket } from '@/lib/data';
-import { removeUploadedVideo, uploadMarketVideo, validateExistingVideo, type PickedMarketVideo } from '@/lib/market-video';
+import { normalizeVideoDurationMs, removeUploadedVideo, uploadMarketVideo, validateExistingVideo, type PickedMarketVideo } from '@/lib/market-video';
 import { colors, spacing } from '@/theme';
 
 export default function CreateMarketScreen() {
@@ -63,7 +63,7 @@ export default function CreateMarketScreen() {
         setUploadController(null);
         setUploadProgress(null);
         nextVideoPath = uploadedPath;
-        nextVideoDuration = pickedVideo.durationMs;
+        nextVideoDuration = normalizeVideoDurationMs(pickedVideo.durationMs);
       } else if (videoPath.trim()) {
         nextVideoDuration = Number(videoDuration);
         nextVideoPath = await validateExistingVideo(videoPath, nextVideoDuration);
