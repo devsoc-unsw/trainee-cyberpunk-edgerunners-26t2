@@ -176,6 +176,8 @@ export type Database = {
           resolved_outcome_id: string | null
           status: string
           title: string
+          video_duration_ms: number | null
+          video_path: string | null
         }
         Insert: {
           category: string
@@ -190,6 +192,8 @@ export type Database = {
           resolved_outcome_id?: string | null
           status?: string
           title: string
+          video_duration_ms?: number | null
+          video_path?: string | null
         }
         Update: {
           category?: string
@@ -204,6 +208,8 @@ export type Database = {
           resolved_outcome_id?: string | null
           status?: string
           title?: string
+          video_duration_ms?: number | null
+          video_path?: string | null
         }
         Relationships: [
           {
@@ -393,6 +399,8 @@ export type Database = {
           p_resolution_criteria: string
           p_title: string
           p_yes_percentage?: number
+          p_video_duration_ms?: number | null
+          p_video_path?: string | null
         }
         Returns: string
       }
@@ -436,6 +444,8 @@ export type Database = {
           p_market_id: string
           p_resolution_criteria: string
           p_title: string
+          p_video_duration_ms?: number | null
+          p_video_path?: string | null
         }
         Returns: undefined
       }
@@ -594,4 +604,3 @@ export const Constants = {
     Enums: {},
   },
 } as const
-
