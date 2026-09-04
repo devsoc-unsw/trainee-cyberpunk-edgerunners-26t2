@@ -119,6 +119,16 @@ function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : 'Something went wrong. Please try again.';
 }
 
+function calculatePayout(stake: number, entryProbability: number) {
+  const probability = Number(entryProbability);
+
+  if (!Number.isFinite(probability) || probability <= 0 || probability > 1) {
+    return stake;
+  }
+
+  return Math.round(stake / probability);
+}
+
 // markets and outcomes are joined by two foreign keys -- outcomes.market_id and
 // markets.resolved_outcome_id -- so a bare `outcomes(...)` embed is ambiguous and
 // PostgREST rejects it with PGRST201. Every markets -> outcomes embed therefore
@@ -232,7 +242,7 @@ export async function fetchPositions(profileId: string) {
   const { data, error } = await supabase
     .from('positions')
     .select(
-      'id, profile_id, market_id, outcome_id, stake, payout, status, entry_probability, created_at, markets(title), outcomes(name, pool)',
+      'id, profile_id, market_id, outcome_id, stake, payout, status, entry_probability, created_at, settled_at, markets(title), outcomes(name, pool)',
     )
     .eq('profile_id', profileId)
     .order('created_at', { ascending: false });
@@ -249,6 +259,7 @@ export async function fetchPositions(profileId: string) {
     status: string;
     entry_probability: number;
     created_at: string;
+    settled_at: string | null;
     markets: { title: string } | null;
     outcomes: { name: string; pool: number } | null;
   }[]).map<Position>((position) => ({
@@ -257,12 +268,13 @@ export async function fetchPositions(profileId: string) {
     marketId: position.market_id,
     outcome: position.outcomes?.name.toUpperCase() === 'NO' ? 'NO' : 'YES',
     stake: position.stake,
-    potentialPayout: position.stake,
+    potentialPayout: calculatePayout(position.stake, position.entry_probability),
     status: position.status as Position['status'],
     payout: position.payout ?? undefined,
     entryProbability: position.entry_probability,
     marketTitle: position.markets?.title ?? 'Unknown market',
     placedAt: position.created_at,
+    settledAt: position.settled_at ?? undefined,
   }));
 }
 
@@ -453,7 +465,7 @@ export async function fetchAdminBets() {
   const { data, error } = await supabase
     .from('positions')
     .select(
-      'id, profile_id, market_id, outcome_id, stake, payout, status, entry_probability, created_at, profiles(username, email), markets(title, outcomes!outcomes_market_id_fkey(name, pool)), outcomes(name, pool)',
+      'id, profile_id, market_id, outcome_id, stake, payout, status, entry_probability, created_at, settled_at, profiles(username, email), markets(title, outcomes!outcomes_market_id_fkey(name, pool)), outcomes(name, pool)',
     )
     .order('created_at', { ascending: false });
 
@@ -469,6 +481,7 @@ export async function fetchAdminBets() {
     status: string;
     entry_probability: number;
     created_at: string;
+    settled_at: string | null;
     profiles: { username: string | null; email: string | null } | null;
     markets: { title: string; outcomes: { name: string; pool: number }[] } | null;
     outcomes: { name: string; pool: number } | null;
@@ -482,13 +495,14 @@ export async function fetchAdminBets() {
       marketId: bet.market_id,
       outcome: bet.outcomes?.name.toUpperCase() === 'NO' ? 'NO' : 'YES',
       stake: bet.stake,
-      potentialPayout: bet.stake,
+      potentialPayout: calculatePayout(bet.stake, bet.entry_probability),
       status: bet.status as AdminBet['status'],
       payout: bet.payout ?? undefined,
       entryProbability: bet.entry_probability,
       userName: bet.profiles?.username ?? bet.profiles?.email ?? 'UNSW Student',
       marketTitle: bet.markets?.title ?? 'Unknown market',
       placedAt: bet.created_at,
+      settledAt: bet.settled_at ?? undefined,
       oddsAtPlacement: bet.entry_probability ?? (totalPool > 0 ? yesPool / totalPool : 0.5),
     };
   });
