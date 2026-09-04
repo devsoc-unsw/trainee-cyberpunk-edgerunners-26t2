@@ -115,6 +115,16 @@ function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : 'Something went wrong. Please try again.';
 }
 
+function calculatePayout(stake: number, entryProbability: number) {
+  const probability = Number(entryProbability);
+
+  if (!Number.isFinite(probability) || probability <= 0 || probability > 1) {
+    return stake;
+  }
+
+  return Math.round(stake / probability);
+}
+
 // markets and outcomes are joined by two foreign keys -- outcomes.market_id and
 // markets.resolved_outcome_id -- so a bare `outcomes(...)` embed is ambiguous and
 // PostgREST rejects it with PGRST201. Every markets -> outcomes embed therefore
@@ -253,7 +263,7 @@ export async function fetchPositions(profileId: string) {
     marketId: position.market_id,
     outcome: position.outcomes?.name.toUpperCase() === 'NO' ? 'NO' : 'YES',
     stake: position.stake,
-    potentialPayout: position.stake,
+    potentialPayout: calculatePayout(position.stake, position.entry_probability),
     status: position.status as Position['status'],
     payout: position.payout ?? undefined,
     entryProbability: position.entry_probability,
