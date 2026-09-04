@@ -1,6 +1,7 @@
 import { isMarketExpired } from '@/lib/countdown';
 import { supabase } from '@/lib/supabase';
 import { AdminAction, AdminBet, AdminUser, Market, MarketOutcome, MarketPricePoint, Position, UserRole } from '@/types';
+import { FunctionsHttpError } from '@supabase/supabase-js';
 
 type MarketRow = {
   id: string;
@@ -269,7 +270,22 @@ export async function placeBet(outcomeId: string, stake: number) {
     },
   });
 
-  if (error) throw new Error(getErrorMessage(error));
+  if (error) {
+    let message = getErrorMessage(error);
+
+    if (error instanceof FunctionsHttpError) {
+      try {
+        const body = await error.context.json();
+        if (typeof body?.error === 'string') {
+          message = body.error;
+        }
+      } catch {
+
+      }
+    }
+
+    throw new Error(message);
+  }
 
   const result = (data as { data?: { balance?: number } } | null)?.data ?? data;
   return result as { position_id: string; stake: number; pool: number; balance: number };

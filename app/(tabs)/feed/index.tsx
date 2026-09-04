@@ -1,18 +1,35 @@
-import { useCallback, useState } from 'react';
-import { ActivityIndicator, FlatList, LayoutChangeEvent, Platform, StyleSheet, Text, View } from 'react-native';
-import { LineChart } from 'react-native-gifted-charts';
-import { useFocusEffect } from 'expo-router';
+import { useCallback, useState } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  LayoutChangeEvent,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { LineChart } from "react-native-gifted-charts";
+import { useFocusEffect } from "expo-router";
 
-import { fetchMarketHistories, fetchMarkets } from '@/lib/data';
-import { colors, radius, spacing, typography } from '@/theme';
-import { Market, MarketPricePoint } from '@/types';
-import { BalanceHeader } from '@/components/ui/balance-header';
-import { MarketCountdown } from '@/components/ui/market-countdown';
+import { fetchMarketHistories, fetchMarkets } from "@/lib/data";
+import { colors, radius, spacing, typography } from "@/theme";
+import { Market, MarketPricePoint, Outcome } from "@/types";
+import { BalanceHeader } from "@/components/ui/balance-header";
+import { MarketCountdown } from "@/components/ui/market-countdown";
+import { BetSheet } from "@/components/ui/bet-sheet";
 
 type FeedItem = {
   key: string;
   market: Market;
   history: MarketPricePoint[];
+};
+
+type MarketPageProps = {
+  item: FeedItem;
+  height: number;
+  width: number;
+  onSelectOutcome: (market: Market, outcome: Outcome) => void;
 };
 
 // A sparkline this size cannot show more than a few dozen points legibly, and a
@@ -33,7 +50,8 @@ function getChartValues(item: FeedItem) {
   return values;
 }
 
-function MarketPage({ item, height, width }: { item: FeedItem; height: number; width: number }) {
+function MarketPage(props: MarketPageProps) {
+  const { item, height, width, onSelectOutcome } = props;
   const yes = Math.round(item.market.yesProbability * 100);
   const history = getChartValues(item);
   const change = yes - history[0];
@@ -42,7 +60,6 @@ function MarketPage({ item, height, width }: { item: FeedItem; height: number; w
 
   return (
     <View style={[styles.page, { height }]}>
-
       <View style={styles.chartSection} pointerEvents="none">
         <View style={styles.priceRow}>
           <View>
@@ -50,16 +67,24 @@ function MarketPage({ item, height, width }: { item: FeedItem; height: number; w
             <View style={styles.priceValueRow}>
               <Text style={styles.priceValue}>{yes}¢</Text>
               <Text style={styles.priceChange}>
-                {change >= 0 ? '+' : ''}
+                {change >= 0 ? "+" : ""}
                 {change}¢
               </Text>
             </View>
           </View>
 
           <View style={styles.ranges}>
-            {['1H', '1D', '1W', 'ALL'].map((range) => (
-              <View key={range} style={[styles.range, range === '1W' && styles.activeRange]}>
-                <Text style={[styles.rangeLabel, range === '1W' && styles.activeRangeLabel]}>
+            {["1H", "1D", "1W", "ALL"].map((range) => (
+              <View
+                key={range}
+                style={[styles.range, range === "1W" && styles.activeRange]}
+              >
+                <Text
+                  style={[
+                    styles.rangeLabel,
+                    range === "1W" && styles.activeRangeLabel,
+                  ]}
+                >
                   {range}
                 </Text>
               </View>
@@ -116,14 +141,24 @@ function MarketPage({ item, height, width }: { item: FeedItem; height: number; w
       </View>
 
       <View style={styles.outcomes}>
-        <View style={[styles.outcome, styles.yesOutcome]}>
+        <Pressable
+          onPress={() => {
+            onSelectOutcome(item.market, "YES");
+          }}
+          style={[styles.outcome, styles.yesOutcome]}
+        >
           <Text style={styles.outcomeLabel}>YES</Text>
           <Text style={styles.yesValue}>{yes}%</Text>
-        </View>
-        <View style={[styles.outcome, styles.noOutcome]}>
+        </Pressable>
+        <Pressable
+          onPress={() => {
+            onSelectOutcome(item.market, "NO");
+          }}
+          style={[styles.outcome, styles.noOutcome]}
+        >
           <Text style={styles.outcomeLabel}>NO</Text>
           <Text style={styles.noValue}>{100 - yes}%</Text>
-        </View>
+        </Pressable>
       </View>
     </View>
   );
@@ -131,51 +166,59 @@ function MarketPage({ item, height, width }: { item: FeedItem; height: number; w
 
 export default function FeedScreen() {
   const [markets, setMarkets] = useState<Market[]>([]);
-  const [histories, setHistories] = useState<Record<string, MarketPricePoint[]>>({});
+  const [histories, setHistories] = useState<
+    Record<string, MarketPricePoint[]>
+  >({});
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [viewport, setViewport] = useState({ height: 0, width: 0 });
+  const [activeBet, setActiveBet] = useState<{
+    market: Market;
+    outcome: Outcome;
+  } | null>(null);
 
   // Refetched on focus so returning from placing a bet shows the new point
   // rather than the chart the screen was mounted with.
+  const loadMarkets = useCallback((isMounted: () => boolean = () => true) => {
+    return fetchMarkets()
+      .then(async (nextMarkets) => {
+        if (!isMounted()) return;
+
+        setMarkets(nextMarkets);
+        setErrorMessage(null);
+
+        // A failure here costs the chart its history, not the feed itself, so
+        // it falls back to a flat line instead of blanking the screen.
+        try {
+          const nextHistories = await fetchMarketHistories(
+            nextMarkets.map((market) => market.id),
+          );
+
+          if (isMounted()) setHistories(nextHistories);
+        } catch {
+          if (isMounted()) setHistories({});
+        }
+      })
+      .catch(() => {
+        if (isMounted()) {
+          setErrorMessage("Markets could not be loaded. Please try again.");
+        }
+      })
+      .finally(() => {
+        if (isMounted()) {
+          setIsLoading(false);
+        }
+      });
+  }, []);
+
   useFocusEffect(
     useCallback(() => {
-      let isMounted = true;
-
-      void fetchMarkets()
-        .then(async (nextMarkets) => {
-          if (!isMounted) return;
-
-          setMarkets(nextMarkets);
-          setErrorMessage(null);
-
-          // A failure here costs the chart its history, not the feed itself, so
-          // it falls back to a flat line instead of blanking the screen.
-          try {
-            const nextHistories = await fetchMarketHistories(
-              nextMarkets.map((market) => market.id),
-            );
-
-            if (isMounted) setHistories(nextHistories);
-          } catch {
-            if (isMounted) setHistories({});
-          }
-        })
-        .catch(() => {
-          if (isMounted) {
-            setErrorMessage('Markets could not be loaded. Please try again.');
-          }
-        })
-        .finally(() => {
-          if (isMounted) {
-            setIsLoading(false);
-          }
-        });
-
+      let mounted = true;
+      void loadMarkets(() => mounted);
       return () => {
-        isMounted = false;
+        mounted = false;
       };
-    }, []),
+    }, [loadMarkets]),
   );
 
   const handleLayout = useCallback((event: LayoutChangeEvent) => {
@@ -191,7 +234,7 @@ export default function FeedScreen() {
 
   return (
     <View style={styles.container} onLayout={handleLayout}>
-      <View style={styles.balanceHeader} pointerEvents='box-none'>
+      <View style={styles.balanceHeader} pointerEvents="box-none">
         <BalanceHeader />
       </View>
       {isLoading ? (
@@ -206,7 +249,14 @@ export default function FeedScreen() {
         <FlatList
           data={items}
           renderItem={({ item }) => (
-            <MarketPage item={item} height={viewport.height} width={viewport.width} />
+            <MarketPage
+              item={item}
+              height={viewport.height}
+              width={viewport.width}
+              onSelectOutcome={(market, outcome) =>
+                setActiveBet({ market, outcome })
+              }
+            />
           )}
           keyExtractor={(item) => item.key}
           getItemLayout={(_, index) => ({
@@ -232,6 +282,17 @@ export default function FeedScreen() {
           contentInsetAdjustmentBehavior="never"
         />
       ) : null}
+      {activeBet && (
+        <BetSheet
+          market={activeBet.market}
+          outcome={activeBet.outcome}
+          onClose={() => setActiveBet(null)}
+          onPlaced={() => {
+            setActiveBet(null);
+            void loadMarkets();
+          }}
+        />
+      )}
     </View>
   );
 }
@@ -258,9 +319,9 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   categoryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     gap: spacing.sm,
   },
   category: {
@@ -271,18 +332,18 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 30,
     lineHeight: 35,
-    fontWeight: '700',
+    fontWeight: "700",
     letterSpacing: -0.4,
   },
   chartSection: {
     flex: 1,
     gap: spacing.sm,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   priceRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
     gap: spacing.lg,
   },
   priceLabel: {
@@ -290,24 +351,24 @@ const styles = StyleSheet.create({
     color: colors.muted,
   },
   priceValueRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
+    flexDirection: "row",
+    alignItems: "baseline",
     gap: spacing.sm,
   },
   priceValue: {
     color: colors.text,
     fontSize: 28,
     lineHeight: 34,
-    fontWeight: '700',
+    fontWeight: "700",
     letterSpacing: -0.4,
   },
   priceChange: {
     ...typography.subhead,
     color: colors.yes,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   ranges: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: spacing.xs,
   },
   range: {
@@ -315,7 +376,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
     borderRadius: radius.full,
-    alignItems: 'center',
+    alignItems: "center",
   },
   activeRange: {
     backgroundColor: colors.surface,
@@ -328,19 +389,19 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   chart: {
-    alignItems: 'center',
-    overflow: 'hidden',
+    alignItems: "center",
+    overflow: "hidden",
   },
   dateRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
   dateLabel: {
     ...typography.caption,
     color: colors.muted,
   },
   outcomes: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: spacing.md,
   },
   outcome: {
@@ -369,18 +430,18 @@ const styles = StyleSheet.create({
     color: colors.no,
   },
   balanceHeader: {
-    position: 'absolute',
+    position: "absolute",
     top: spacing.xxxl,
     left: spacing.xl,
   },
   centeredState: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     padding: spacing.xl,
   },
   stateText: {
     ...typography.subhead,
-    textAlign: 'center',
+    textAlign: "center",
   },
 });
