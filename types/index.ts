@@ -16,6 +16,8 @@ export type MarketOutcome = {
   id: string;
   name: Outcome;
   pool: number;
+  liquidity: number;
+  wagerPool: number;
 };
 
 export type Market = {
@@ -27,6 +29,9 @@ export type Market = {
   closesAt: string;
   resolutionCriteria: string;
   yesProbability: number;
+  resolvedOutcomeId?: string;
+  resolvedAt?: string;
+  deletedAt?: string;
   outcomes?: MarketOutcome[];
 };
 
@@ -38,6 +43,8 @@ export type Position = {
   stake: number;
   potentialPayout: number;
   status: PositionStatus;
+  payout?: number;
+  entryProbability?: number;
   marketTitle?: string;
   placedAt?: string;
 };
@@ -59,7 +66,9 @@ export type AdminBet = Position & {
 export type AdminAction = {
   id: string;
   adminName: string;
-  action: 'MARKET_CREATED' | 'MARKET_UPDATED' | 'ODDS_OVERRIDE' | 'BET_REFUNDED' | 'MARKET_VOIDED' | 'ROLE_UPDATED' | 'USER_SUSPENDED' | 'CREDIT_ADJUSTMENT';
+  action: 'MARKET_CREATED' | 'MARKET_UPDATED' | 'ODDS_OVERRIDE' | 'MARKET_CLOSED' | 'MARKET_REOPENED' | 'MARKET_RESOLVED' | 'MARKET_VOIDED' | 'MARKET_DELETED' | 'BET_REFUNDED' | 'ROLE_UPDATED' | 'USER_SUSPENDED' | 'USER_REACTIVATED' | 'CREDIT_ADJUSTMENT';
+  targetType?: 'MARKET' | 'BET' | 'USER' | 'OTHER';
+  targetId?: string;
   target: string;
   summary: string;
   reason: string;

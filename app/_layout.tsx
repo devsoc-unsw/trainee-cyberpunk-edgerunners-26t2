@@ -34,7 +34,7 @@ export default function RootLayout() {
  * SessionProvider.
  */
 function RootStack() {
-  const { user, isLoading } = useSession();
+  const { user, profile, isLoading } = useSession();
 
   // Deciding before the stored session has been read would show the login
   // screen to someone who is already signed in.
@@ -57,6 +57,7 @@ function RootStack() {
   }
 
   const isSignedIn = user !== null;
+  const isSuspended = profile?.status === 'SUSPENDED';
 
   return (
     <Stack
@@ -76,7 +77,11 @@ function RootStack() {
       {/* Without these guards the only auth check in the app was on "/", so
           opening any other route directly -- a reload, a restored URL, a deep
           link -- rendered the signed-in app to a signed-out user. */}
-      <Stack.Protected guard={isSignedIn}>
+      <Stack.Protected guard={isSignedIn && isSuspended}>
+        <Stack.Screen name="suspended" options={{ headerShown: false }} />
+      </Stack.Protected>
+
+      <Stack.Protected guard={isSignedIn && !isSuspended}>
         <Stack.Screen name="onboarding" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="markets/[id]" options={{ title: "Market" }} />

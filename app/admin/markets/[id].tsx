@@ -1,48 +1,91 @@
-import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, View } from 'react-native';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { ActivityIndicator, View } from 'react-native';
 
 import { AdminActionButton, AdminRow, AdminSectionLabel, AdminStatus } from '@/components/admin/admin-components';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { PlaceholderState } from '@/components/ui/placeholder-state';
 import { Screen } from '@/components/ui/screen';
 import { ThemedText } from '@/components/ui/themed-text';
-import { fetchAdminBets, fetchMarket } from '@/lib/data';
+import { deleteMarket, fetchAdminBets, fetchMarket, resolveMarket, setMarketBetting, voidMarket } from '@/lib/data';
 import { colors, spacing } from '@/theme';
 import { Market } from '@/types';
+
+type MarketAction = 'close' | 'reopen' | 'resolveYes' | 'resolveNo' | 'void' | 'delete';
+
+const actionDetails: Record<MarketAction, { title: string; confirmLabel: string; destructive?: boolean; reason?: boolean }> = {
+  close: { title: 'Close betting?', confirmLabel: 'Close betting' },
+  reopen: { title: 'Reopen betting?', confirmLabel: 'Reopen betting' },
+  resolveYes: { title: 'Resolve this market YES?', confirmLabel: 'Resolve YES' },
+  resolveNo: { title: 'Resolve this market NO?', confirmLabel: 'Resolve NO' },
+  void: { title: 'Void this market and refund all open bets?', confirmLabel: 'Void and refund', destructive: true, reason: true },
+  delete: { title: 'Delete this market?', confirmLabel: 'Delete market', destructive: true, reason: true },
+};
 
 export default function AdminMarketDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [market, setMarket] = useState<Market | null>(null);
-  const [hasBets, setHasBets] = useState(false);
+  const [hasOpenBets, setHasOpenBets] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [action, setAction] = useState<MarketAction | null>(null);
+  const [reason, setReason] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState(false);
 
-  useEffect(() => {
-    if (!id) {
-      return;
+  const load = useCallback(async () => {
+    if (!id) return;
+    try {
+      const [nextMarket, bets] = await Promise.all([fetchMarket(id), fetchAdminBets()]);
+      setMarket(nextMarket);
+      setHasOpenBets(bets.some((bet) => bet.marketId === id && bet.status === 'OPEN'));
+      setLoadError(false);
+    } catch {
+      setLoadError(true);
+    } finally {
+      setIsLoading(false);
     }
-
-    void Promise.all([fetchMarket(id), fetchAdminBets()])
-      .then(([nextMarket, bets]) => {
-        setMarket(nextMarket);
-        setHasBets(bets.some((bet) => bet.marketId === id));
-      })
-      .finally(() => setIsLoading(false));
   }, [id]);
 
-  if (isLoading) {
-    return <Screen centered><ActivityIndicator color={colors.accent} /></Screen>;
-  }
+  useFocusEffect(useCallback(() => { void load(); }, [load]));
 
-  if (!market) {
-    return <Screen centered><PlaceholderState title="Market not found" description="Check the market ID and try again." /></Screen>;
-  }
+  const openAction = (nextAction: MarketAction) => {
+    setReason('');
+    setErrorMessage(null);
+    setAction(nextAction);
+  };
 
-  const previewAction = (title: string) => Alert.alert(title, 'This admin action is part of the UI preview and is not connected yet.');
+  const handleConfirm = async () => {
+    if (!id || !action) return;
+    setIsSubmitting(true);
+    setErrorMessage(null);
+    try {
+      if (action === 'close') await setMarketBetting(id, false);
+      if (action === 'reopen') await setMarketBetting(id, true);
+      if (action === 'resolveYes') await resolveMarket(id, 'YES');
+      if (action === 'resolveNo') await resolveMarket(id, 'NO');
+      if (action === 'void') await voidMarket(id, reason.trim());
+      if (action === 'delete') await deleteMarket(id, reason.trim());
+      setAction(null);
+      await load();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'The action could not be completed.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (isLoading) return <Screen centered><ActivityIndicator color={colors.accent} /></Screen>;
+  if (!market) return <Screen centered><PlaceholderState title={loadError ? 'Market unavailable' : 'Market not found'} description={loadError ? 'Try again.' : 'Check the market ID and try again.'} /><AdminActionButton onPress={() => { setIsLoading(true); void load(); }}>Try again</AdminActionButton></Screen>;
+
+  const isDeleted = Boolean(market.deletedAt);
+  const isUnresolved = market.status === 'OPEN' || market.status === 'CLOSED';
+  const details = action ? actionDetails[action] : null;
 
   return (
     <Screen>
       <View style={{ gap: spacing.sm }}>
-        <AdminStatus label={market.status} tone={market.status === 'OPEN' ? 'positive' : market.status === 'VOIDED' ? 'negative' : 'warning'} />
+        <AdminStatus label={isDeleted ? 'DELETED' : market.status} tone={market.status === 'OPEN' ? 'positive' : market.status === 'VOIDED' || isDeleted ? 'negative' : 'warning'} />
         <ThemedText variant="title">{market.title}</ThemedText>
         <ThemedText variant="body" style={{ opacity: 0.72 }}>{market.description}</ThemedText>
       </View>
@@ -54,24 +97,51 @@ export default function AdminMarketDetailsScreen() {
         <AdminRow title="Resolution criteria" subtitle={market.resolutionCriteria} />
       </View>
 
-      <View style={{ gap: spacing.sm }}>
-        <AdminSectionLabel>Trading</AdminSectionLabel>
-        <AdminRow title="Override odds" onPress={() => router.push(`/admin/markets/${market.id}/odds`)} />
-        <AdminRow title="Edit market" onPress={() => router.push(`/admin/markets/${market.id}/edit`)} />
-        <AdminRow title="Close betting" onPress={() => previewAction('Close betting')} />
-        <AdminRow title="Reopen betting" onPress={() => previewAction('Reopen betting')} />
-      </View>
+      {!isDeleted && isUnresolved ? (
+        <View style={{ gap: spacing.sm }}>
+          <AdminSectionLabel>Trading</AdminSectionLabel>
+          <AdminRow title="Override odds" onPress={() => router.push(`/admin/markets/${market.id}/odds`)} />
+          <AdminRow title="Edit market" onPress={() => router.push(`/admin/markets/${market.id}/edit`)} />
+          {market.status === 'OPEN' ? <AdminRow title="Close betting" onPress={() => openAction('close')} /> : null}
+          {market.status === 'CLOSED' ? <AdminRow title="Reopen betting" onPress={() => openAction('reopen')} /> : null}
+        </View>
+      ) : null}
 
-      <View style={{ gap: spacing.sm }}>
-        <AdminSectionLabel>Resolution</AdminSectionLabel>
-        <AdminActionButton onPress={() => previewAction('Resolve YES')}>Resolve YES</AdminActionButton>
-        <AdminActionButton onPress={() => previewAction('Resolve NO')}>Resolve NO</AdminActionButton>
-        <AdminActionButton danger onPress={() => previewAction('Void and refund')}>Void and refund</AdminActionButton>
-        <AdminActionButton disabled={hasBets} danger onPress={() => previewAction('Permanently delete')}>
-          Permanently delete
-        </AdminActionButton>
-        {hasBets ? <ThemedText variant="caption" style={{ color: colors.no }}>Permanent deletion is disabled while this market has bets. Void and refund it first.</ThemedText> : null}
-      </View>
+      {!isDeleted && isUnresolved ? (
+        <View style={{ gap: spacing.sm }}>
+          <AdminSectionLabel>Resolution</AdminSectionLabel>
+          {market.status === 'CLOSED' ? (
+            <>
+              <AdminActionButton onPress={() => openAction('resolveYes')}>Resolve YES</AdminActionButton>
+              <AdminActionButton onPress={() => openAction('resolveNo')}>Resolve NO</AdminActionButton>
+            </>
+          ) : null}
+          <AdminActionButton danger onPress={() => openAction('void')}>Void and refund</AdminActionButton>
+        </View>
+      ) : null}
+
+      {!isDeleted ? (
+        <View style={{ gap: spacing.sm }}>
+          <AdminActionButton disabled={hasOpenBets} danger onPress={() => openAction('delete')}>Delete market</AdminActionButton>
+          {hasOpenBets ? <ThemedText variant="caption" style={{ color: colors.no }}>Void and refund open bets before deleting this market.</ThemedText> : null}
+        </View>
+      ) : null}
+
+      {details ? (
+        <ConfirmDialog
+          visible
+          title={details.title}
+          confirmLabel={details.confirmLabel}
+          destructive={details.destructive}
+          isBusy={isSubmitting}
+          reason={reason}
+          reasonLabel={details.reason ? 'Reason' : undefined}
+          errorMessage={errorMessage}
+          onReasonChange={details.reason ? setReason : undefined}
+          onConfirm={handleConfirm}
+          onCancel={() => setAction(null)}
+        />
+      ) : null}
     </Screen>
   );
 }

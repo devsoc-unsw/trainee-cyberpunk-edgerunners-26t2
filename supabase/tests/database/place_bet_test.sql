@@ -1,6 +1,6 @@
 begin;
 
-select plan(16);
+select plan(19);
 
 insert into auth.users (id, email)
 values (
@@ -8,13 +8,15 @@ values (
     'place-bet-test@example.com'
 );
 
-insert into public.profiles (id, username)
+insert into public.profiles (id, username, role)
 values (
     '90000000-0000-0000-0000-000000000099',
-    'place_bet_test_user'
+    'place_bet_test_user',
+    'ADMIN'
 )
 on conflict (id) do update
-set username = excluded.username;
+set username = excluded.username,
+    role = excluded.role;
 
 insert into public.markets (
     id,
@@ -86,7 +88,7 @@ set local request.jwt.claim.sub =
 
 select is(
     (
-        select coalesce(sum(delta), 0)
+        select coalesce(sum(delta), 0)::bigint
         from public.ledger
         where profile_id = '90000000-0000-0000-0000-000000000099'
     ),
@@ -108,7 +110,7 @@ select throws_ok(
 
 select is(
     (
-        select coalesce(sum(delta), 0)
+        select coalesce(sum(delta), 0)::bigint
         from public.ledger
         where profile_id = '90000000-0000-0000-0000-000000000099'
     ),
@@ -118,7 +120,7 @@ select is(
 
 select is(
     (
-        select coalesce(sum(delta), 0)
+        select coalesce(sum(delta), 0)::bigint
         from public.ledger
         where profile_id = '90000000-0000-0000-0000-000000000099'
     ),
@@ -140,7 +142,7 @@ select throws_ok(
 
 select is(
     (
-        select coalesce(sum(delta), 0)
+        select coalesce(sum(delta), 0)::bigint
         from public.ledger
         where profile_id = '90000000-0000-0000-0000-000000000099'
     ),
@@ -150,7 +152,7 @@ select is(
 
 select is(
     (
-        select coalesce(sum(delta), 0)
+        select coalesce(sum(delta), 0)::bigint
         from public.ledger
         where profile_id = '90000000-0000-0000-0000-000000000099'
     ),
@@ -172,7 +174,7 @@ select throws_ok(
 
 select is(
     (
-        select coalesce(sum(delta), 0)
+        select coalesce(sum(delta), 0)::bigint
         from public.ledger
         where profile_id = '90000000-0000-0000-0000-000000000099'
     ),
@@ -182,7 +184,7 @@ select is(
 
 select is(
     (
-        select coalesce(sum(delta), 0)
+        select coalesce(sum(delta), 0)::bigint
         from public.ledger
         where profile_id = '90000000-0000-0000-0000-000000000099'
     ),
@@ -204,7 +206,7 @@ select throws_ok(
 
 select is(
     (
-        select coalesce(sum(delta), 0)
+        select coalesce(sum(delta), 0)::bigint
         from public.ledger
         where profile_id = '90000000-0000-0000-0000-000000000099'
     ),
@@ -224,7 +226,7 @@ select lives_ok(
 
 select is(
     (
-        select coalesce(sum(delta), 0)
+        select coalesce(sum(delta), 0)::bigint
         from public.ledger
         where profile_id = '90000000-0000-0000-0000-000000000099'
     ),
@@ -246,12 +248,49 @@ select throws_ok(
 
 select is(
     (
-        select coalesce(sum(delta), 0)
+        select coalesce(sum(delta), 0)::bigint
         from public.ledger
         where profile_id = '90000000-0000-0000-0000-000000000099'
     ),
     900::bigint,
     'opposite-side rejection leaves balance unchanged'
+);
+
+select lives_ok(
+    $$
+        select public.admin_refund_bet(
+            (
+                select id
+                from public.positions
+                where profile_id = '90000000-0000-0000-0000-000000000099'
+                  and market_id = '90000000-0000-0000-0000-000000000001'
+                  and status = 'OPEN'
+            ),
+            'Regression test refund'
+        )
+    $$,
+    'admin can refund the open position'
+);
+
+select lives_ok(
+    $$
+        select public.place_bet(
+            '91000000-0000-0000-0000-000000000001',
+            100
+        )
+    $$,
+    'user can bet on the same outcome after a refund'
+);
+
+select is(
+    (
+        select array_agg(status order by created_at)::text
+        from public.positions
+        where profile_id = '90000000-0000-0000-0000-000000000099'
+          and market_id = '90000000-0000-0000-0000-000000000001'
+    ),
+    '{REFUNDED,OPEN}',
+    'refunded history is preserved beside the new open position'
 );
 
 select * from finish();

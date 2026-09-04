@@ -7,10 +7,30 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.5"
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
@@ -23,6 +43,8 @@ export type Database = {
           reason: string
           summary: string
           target: string
+          target_id: string | null
+          target_type: string
         }
         Insert: {
           action: string
@@ -32,6 +54,8 @@ export type Database = {
           reason?: string
           summary: string
           target: string
+          target_id?: string | null
+          target_type?: string
         }
         Update: {
           action?: string
@@ -41,8 +65,17 @@ export type Database = {
           reason?: string
           summary?: string
           target?: string
+          target_id?: string | null
+          target_type?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "admin_actions_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "profile_balances"
+            referencedColumns: ["profile_id"]
+          },
           {
             foreignKeyName: "admin_actions_admin_id_fkey"
             columns: ["admin_id"]
@@ -99,9 +132,13 @@ export type Database = {
           category: string
           closes_at: string
           created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
           description: string
           id: string
           resolution_criteria: string
+          resolved_at: string | null
+          resolved_outcome_id: string | null
           status: string
           title: string
         }
@@ -109,9 +146,13 @@ export type Database = {
           category: string
           closes_at: string
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           description?: string
           id?: string
           resolution_criteria?: string
+          resolved_at?: string | null
+          resolved_outcome_id?: string | null
           status?: string
           title: string
         }
@@ -119,35 +160,67 @@ export type Database = {
           category?: string
           closes_at?: string
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           description?: string
           id?: string
           resolution_criteria?: string
+          resolved_at?: string | null
+          resolved_outcome_id?: string | null
           status?: string
           title?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "markets_deleted_by_fkey"
+            columns: ["deleted_by"]
+            isOneToOne: false
+            referencedRelation: "profile_balances"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "markets_deleted_by_fkey"
+            columns: ["deleted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "markets_resolved_outcome_id_fkey"
+            columns: ["resolved_outcome_id"]
+            isOneToOne: false
+            referencedRelation: "outcomes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       outcomes: {
         Row: {
           created_at: string
           id: string
+          liquidity: number
           market_id: string
           name: string
           pool: number
+          wager_pool: number
         }
         Insert: {
           created_at?: string
           id?: string
+          liquidity?: number
           market_id: string
           name: string
           pool?: number
+          wager_pool?: number
         }
         Update: {
           created_at?: string
           id?: string
+          liquidity?: number
           market_id?: string
           name?: string
           pool?: number
+          wager_pool?: number
         }
         Relationships: [
           {
@@ -162,6 +235,7 @@ export type Database = {
       positions: {
         Row: {
           created_at: string
+          entry_probability: number
           id: string
           market_id: string
           outcome_id: string
@@ -169,10 +243,12 @@ export type Database = {
           profile_id: string
           settled_at: string | null
           stake: number
+          status: string
           updated_at: string
         }
         Insert: {
           created_at?: string
+          entry_probability?: number
           id?: string
           market_id: string
           outcome_id: string
@@ -180,10 +256,12 @@ export type Database = {
           profile_id: string
           settled_at?: string | null
           stake: number
+          status?: string
           updated_at?: string
         }
         Update: {
           created_at?: string
+          entry_probability?: number
           id?: string
           market_id?: string
           outcome_id?: string
@@ -191,6 +269,7 @@ export type Database = {
           profile_id?: string
           settled_at?: string | null
           stake?: number
+          status?: string
           updated_at?: string
         }
         Relationships: [
@@ -262,8 +341,75 @@ export type Database = {
       }
     }
     Functions: {
+      admin_adjust_credits: {
+        Args: {
+          p_delta: number
+          p_profile_id: string
+          p_reason: string
+          p_request_id: string
+        }
+        Returns: number
+      }
+      admin_create_market: {
+        Args: {
+          p_category: string
+          p_closes_at: string
+          p_description: string
+          p_resolution_criteria: string
+          p_title: string
+          p_yes_percentage?: number
+        }
+        Returns: string
+      }
+      admin_delete_market: {
+        Args: { p_market_id: string; p_reason: string }
+        Returns: undefined
+      }
+      admin_override_odds: {
+        Args: {
+          p_market_id: string
+          p_reason: string
+          p_yes_percentage: number
+        }
+        Returns: undefined
+      }
+      admin_refund_bet: {
+        Args: { p_position_id: string; p_reason: string }
+        Returns: undefined
+      }
+      admin_resolve_market: {
+        Args: { p_market_id: string; p_outcome_name: string }
+        Returns: undefined
+      }
+      admin_set_market_betting: {
+        Args: { p_market_id: string; p_open: boolean }
+        Returns: undefined
+      }
+      admin_set_user_role: {
+        Args: { p_profile_id: string; p_reason: string; p_role: string }
+        Returns: undefined
+      }
+      admin_set_user_status: {
+        Args: { p_profile_id: string; p_reason: string; p_status: string }
+        Returns: undefined
+      }
+      admin_update_market: {
+        Args: {
+          p_category: string
+          p_closes_at: string
+          p_description: string
+          p_market_id: string
+          p_resolution_criteria: string
+          p_title: string
+        }
+        Returns: undefined
+      }
+      admin_void_market: {
+        Args: { p_market_id: string; p_reason: string }
+        Returns: undefined
+      }
       get_leaderboard: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           is_current_user: boolean
           profile_id: string
@@ -273,6 +419,7 @@ export type Database = {
           username: string
         }[]
       }
+      is_admin: { Args: never; Returns: boolean }
       place_bet: {
         Args: { p_outcome_id: string; p_stake: number }
         Returns: Json
@@ -405,6 +552,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },

@@ -69,11 +69,13 @@ export function AdminStatus({ label, tone = 'neutral' }: { label: string; tone?:
   );
 }
 
-export function AdminSearch({ placeholder }: { placeholder: string }) {
+export function AdminSearch({ placeholder, value, onChangeText }: { placeholder: string; value?: string; onChangeText?: (value: string) => void }) {
   return (
     <TextInput
       accessibilityLabel={placeholder}
       placeholder={placeholder}
+      value={value}
+      onChangeText={onChangeText}
       placeholderTextColor={colors.inputPlaceholder}
       style={{
         height: 48,
@@ -124,10 +126,12 @@ export function AdminField({ label, children }: { label: string; children: React
   );
 }
 
-export function AdminFilter({ children, active = false }: { children: string; active?: boolean }) {
+export function AdminFilter({ children, active = false, onPress }: { children: string; active?: boolean; onPress?: () => void }) {
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityState={{ selected: active }}
+      onPress={onPress}
       style={({ pressed }) => ({
         paddingHorizontal: spacing.md,
         paddingVertical: spacing.sm,
