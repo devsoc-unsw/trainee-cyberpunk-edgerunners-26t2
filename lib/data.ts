@@ -1,3 +1,4 @@
+import { isMarketExpired } from '@/lib/countdown';
 import { supabase } from '@/lib/supabase';
 import { AdminAction, AdminBet, AdminUser, Market, MarketOutcome, Position, UserRole } from '@/types';
 
@@ -43,12 +44,18 @@ type AdminActionRow = {
   profiles: { username: string | null; email: string | null } | null;
 };
 
-function getMarketStatus(status: string): Market['status'] {
+function getMarketStatus(status: string, closesAt: string): Market['status'] {
   const normalizedStatus = status.toUpperCase();
 
   if (normalizedStatus === 'CLOSED') return 'CLOSED';
   if (normalizedStatus === 'RESOLVED') return 'RESOLVED';
   if (normalizedStatus === 'VOIDED') return 'VOIDED';
+
+  // close_expired_markets() runs once a minute, so a market can still read as
+  // 'open' for up to a minute after its deadline. place_bet already rejects
+  // those bets, so show them as closed rather than inviting a bet that fails.
+  if (isMarketExpired(closesAt)) return 'CLOSED';
+
   return 'OPEN';
 }
 
@@ -92,7 +99,7 @@ function mapMarket(row: MarketRow): Market {
     title: row.title,
     description: row.description ?? '',
     category: row.category,
-    status: getMarketStatus(row.status),
+    status: getMarketStatus(row.status, row.closes_at),
     closesAt: row.closes_at,
     resolutionCriteria: row.resolution_criteria ?? '',
     yesProbability: totalPool > 0 ? (yesOutcome?.pool ?? 0) / totalPool : 0.5,

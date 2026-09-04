@@ -7,7 +7,9 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { PlaceholderState } from '@/components/ui/placeholder-state';
 import { Screen } from '@/components/ui/screen';
 import { ThemedText } from '@/components/ui/themed-text';
+import { formatClosingDate } from '@/lib/countdown';
 import { deleteMarket, fetchAdminBets, fetchMarket, resolveMarket, setMarketBetting, voidMarket } from '@/lib/data';
+import { useCountdown } from '@/state/countdown';
 import { colors, spacing } from '@/theme';
 import { Market } from '@/types';
 
@@ -32,6 +34,12 @@ export default function AdminMarketDetailsScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [loadError, setLoadError] = useState(false);
+  const countdown = useCountdown(market?.closesAt);
+
+  // Admins need the exact date as well as the time remaining, so show both.
+  const closesLabel = market
+    ? `${market.status === 'OPEN' && !countdown.isExpired ? `in ${countdown.label}` : 'closed'} · ${formatClosingDate(market.closesAt)}`
+    : '';
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -93,7 +101,7 @@ export default function AdminMarketDetailsScreen() {
       <View style={{ gap: spacing.sm }}>
         <AdminSectionLabel>Market details</AdminSectionLabel>
         <AdminRow title="Category" value={market.category} />
-        <AdminRow title="Closes" value={market.closesAt} />
+        <AdminRow title="Closes" value={closesLabel} />
         <AdminRow title="Resolution criteria" subtitle={market.resolutionCriteria} />
       </View>
 

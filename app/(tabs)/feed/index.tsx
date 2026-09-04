@@ -6,6 +6,7 @@ import { fetchMarkets } from '@/lib/data';
 import { colors, radius, spacing, typography } from '@/theme';
 import { Market } from '@/types';
 import { BalanceHeader } from '@/components/ui/balance-header';
+import { MarketCountdown } from '@/components/ui/market-countdown';
 
 type FeedItem = {
   key: string;
@@ -94,7 +95,14 @@ function MarketPage({ item, height, width }: { item: FeedItem; height: number; w
       </View>
 
       <View style={styles.marketHeader}>
-        <Text style={styles.category}>{item.market.category}</Text>
+        <View style={styles.categoryRow}>
+          <Text style={styles.category}>{item.market.category}</Text>
+          <MarketCountdown
+            closesAt={item.market.closesAt}
+            status={item.market.status}
+            variant="caption"
+          />
+        </View>
         <Text style={styles.title} numberOfLines={4}>
           {item.market.title}
         </Text>
@@ -222,6 +230,12 @@ const styles = StyleSheet.create({
   },
   marketHeader: {
     gap: spacing.md,
+  },
+  categoryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
   },
   category: {
     ...typography.caption,

@@ -3,6 +3,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, RefreshControl, View } from 'react-native';
 
 import { AdminActionButton, AdminFilter, AdminSearch, AdminStatus } from '@/components/admin/admin-components';
+import { MarketCountdown } from '@/components/ui/market-countdown';
 import { ThemedText } from '@/components/ui/themed-text';
 import { fetchMarkets } from '@/lib/data';
 import { colors, spacing } from '@/theme';
@@ -79,7 +80,10 @@ export default function AdminMarketsScreen() {
               <ThemedText variant="caption">YES {Math.round(item.yesProbability * 100)}%</ThemedText>
             </View>
             <ThemedText variant="headline">{item.title}</ThemedText>
-            <ThemedText variant="subhead">{item.category} · closes {item.closesAt}</ThemedText>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+              <ThemedText variant="subhead">{item.category} ·</ThemedText>
+              <MarketCountdown closesAt={item.closesAt} status={item.status} />
+            </View>
             <AdminActionButton onPress={() => router.push(`/admin/markets/${item.id}`)} style={{ alignSelf: 'flex-start' }}>
               {deleted ? 'View market' : 'Manage market'}
             </AdminActionButton>
