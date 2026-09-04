@@ -1,33 +1,41 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { ActivityIndicator, FlatList, LayoutChangeEvent, Platform, StyleSheet, Text, View } from 'react-native';
 import { LineChart } from 'react-native-gifted-charts';
+import { useFocusEffect } from 'expo-router';
 
-import { fetchMarkets } from '@/lib/data';
+import { fetchMarketHistories, fetchMarkets } from '@/lib/data';
 import { colors, radius, spacing, typography } from '@/theme';
-import { Market } from '@/types';
+import { Market, MarketPricePoint } from '@/types';
 import { BalanceHeader } from '@/components/ui/balance-header';
+import { MarketCountdown } from '@/components/ui/market-countdown';
 
 type FeedItem = {
   key: string;
   market: Market;
+  history: MarketPricePoint[];
 };
 
-const probabilityHistory: Record<string, number[]> = {
-  '1': [18, 20, 19, 22, 25, 23, 21, 22, 24],
-  '2': [46, 49, 52, 50, 54, 58, 57, 53, 55],
-  '3': [39, 43, 41, 47, 52, 56, 61, 64, 68],
-  '4': [58, 63, 67, 65, 70, 76, 79, 77, 74],
-};
+// A sparkline this size cannot show more than a few dozen points legibly, and a
+// busy market accumulates one per bet, so chart only the most recent stretch.
+const MAX_CHART_POINTS = 60;
 
-function getProbabilityHistory(market: Market) {
-  const currentProbability = Math.round(market.yesProbability * 100);
+function getChartValues(item: FeedItem) {
+  const values = item.history
+    .slice(-MAX_CHART_POINTS)
+    .map((point) => Math.round(point.probability * 100));
 
-  return probabilityHistory[market.id] ?? [currentProbability];
+  // A market with no recorded history yet still needs a line to draw. Falling
+  // back to the current probability gives a flat one rather than an empty card.
+  if (values.length === 0) {
+    return [Math.round(item.market.yesProbability * 100)];
+  }
+
+  return values;
 }
 
 function MarketPage({ item, height, width }: { item: FeedItem; height: number; width: number }) {
   const yes = Math.round(item.market.yesProbability * 100);
-  const history = getProbabilityHistory(item.market);
+  const history = getChartValues(item);
   const change = yes - history[0];
   const chartHeight = Math.min(160, Math.max(112, height * 0.2));
   const chartWidth = Math.max(240, width - spacing.xl * 2);
@@ -94,7 +102,14 @@ function MarketPage({ item, height, width }: { item: FeedItem; height: number; w
       </View>
 
       <View style={styles.marketHeader}>
-        <Text style={styles.category}>{item.market.category}</Text>
+        <View style={styles.categoryRow}>
+          <Text style={styles.category}>{item.market.category}</Text>
+          <MarketCountdown
+            closesAt={item.market.closesAt}
+            status={item.market.status}
+            variant="caption"
+          />
+        </View>
         <Text style={styles.title} numberOfLines={4}>
           {item.market.title}
         </Text>
@@ -116,34 +131,52 @@ function MarketPage({ item, height, width }: { item: FeedItem; height: number; w
 
 export default function FeedScreen() {
   const [markets, setMarkets] = useState<Market[]>([]);
+  const [histories, setHistories] = useState<Record<string, MarketPricePoint[]>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [viewport, setViewport] = useState({ height: 0, width: 0 });
 
-  useEffect(() => {
-    let isMounted = true;
+  // Refetched on focus so returning from placing a bet shows the new point
+  // rather than the chart the screen was mounted with.
+  useFocusEffect(
+    useCallback(() => {
+      let isMounted = true;
 
-    void fetchMarkets()
-      .then((nextMarkets) => {
-        if (isMounted) {
+      void fetchMarkets()
+        .then(async (nextMarkets) => {
+          if (!isMounted) return;
+
           setMarkets(nextMarkets);
-        }
-      })
-      .catch(() => {
-        if (isMounted) {
-          setErrorMessage('Markets could not be loaded. Please try again.');
-        }
-      })
-      .finally(() => {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      });
+          setErrorMessage(null);
 
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+          // A failure here costs the chart its history, not the feed itself, so
+          // it falls back to a flat line instead of blanking the screen.
+          try {
+            const nextHistories = await fetchMarketHistories(
+              nextMarkets.map((market) => market.id),
+            );
+
+            if (isMounted) setHistories(nextHistories);
+          } catch {
+            if (isMounted) setHistories({});
+          }
+        })
+        .catch(() => {
+          if (isMounted) {
+            setErrorMessage('Markets could not be loaded. Please try again.');
+          }
+        })
+        .finally(() => {
+          if (isMounted) {
+            setIsLoading(false);
+          }
+        });
+
+      return () => {
+        isMounted = false;
+      };
+    }, []),
+  );
 
   const handleLayout = useCallback((event: LayoutChangeEvent) => {
     const { height, width } = event.nativeEvent.layout;
@@ -153,6 +186,7 @@ export default function FeedScreen() {
   const items: FeedItem[] = markets.map((market) => ({
     key: market.id,
     market,
+    history: histories[market.id] ?? [],
   }));
 
   return (
@@ -222,6 +256,12 @@ const styles = StyleSheet.create({
   },
   marketHeader: {
     gap: spacing.md,
+  },
+  categoryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
   },
   category: {
     ...typography.caption,

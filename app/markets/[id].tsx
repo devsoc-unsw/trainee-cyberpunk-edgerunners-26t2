@@ -7,6 +7,7 @@ import { Screen } from '@/components/ui/screen';
 import { ThemedText } from '@/components/ui/themed-text';
 import { fetchMarket, placeBet } from '@/lib/data';
 import { useBalance } from '@/state/balance';
+import { useCountdown } from '@/state/countdown';
 import { Market } from '@/types';
 import { colors, radius, spacing } from '@/theme';
 
@@ -20,6 +21,11 @@ export default function MarketDetailsScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const { setBalance } = useBalance();
+  const countdown = useCountdown(market?.closesAt);
+
+  // The countdown can reach zero while the screen is open, before any refetch.
+  // Treat that as closed straight away so betting stops at the deadline.
+  const isClosed = market !== null && (market.status !== 'OPEN' || countdown.isExpired);
 
   useEffect(() => {
     if (!id) {
@@ -56,6 +62,11 @@ export default function MarketDetailsScreen() {
 
     setErrorMessage(null);
     setSuccessMessage(null);
+
+    if (isClosed) {
+      setErrorMessage('This market has closed. No further predictions can be placed.');
+      return;
+    }
 
     if (!selectedOutcomeId) {
       setErrorMessage('Choose YES or NO first.');
@@ -135,13 +146,19 @@ export default function MarketDetailsScreen() {
       >
         <ThemedText variant="caption">RESOLUTION CRITERIA</ThemedText>
         <ThemedText variant="body">{market.resolutionCriteria}</ThemedText>
-        <ThemedText variant="subhead">Closes {market.closesAt}</ThemedText>
+        <ThemedText variant="subhead" style={{ color: isClosed ? colors.no : colors.accent }}>
+          {isClosed ? 'Betting is closed' : `Closes in ${countdown.label}`}
+        </ThemedText>
       </View>
 
       <View style={{ gap: spacing.md }}>
         <View style={{ gap: spacing.sm }}>
           <ThemedText variant="title">Make a prediction</ThemedText>
-          <ThemedText variant="subhead">Choose YES or NO, then enter your stake.</ThemedText>
+          <ThemedText variant="subhead">
+            {isClosed
+              ? 'This market is no longer taking predictions.'
+              : 'Choose YES or NO, then enter your stake.'}
+          </ThemedText>
         </View>
 
         <View style={{ gap: spacing.sm }}>
@@ -153,7 +170,8 @@ export default function MarketDetailsScreen() {
               <Pressable
                 key={outcome.id}
                 accessibilityRole="button"
-                accessibilityState={{ selected: isSelected }}
+                accessibilityState={{ selected: isSelected, disabled: isClosed }}
+                disabled={isClosed}
                 onPress={() => setSelectedOutcomeId(outcome.id)}
                 style={({ pressed }) => ({
                   gap: spacing.xs,
@@ -162,7 +180,7 @@ export default function MarketDetailsScreen() {
                   borderColor: isSelected ? (isYes ? colors.yes : colors.no) : colors.border,
                   borderWidth: 1,
                   borderRadius: radius.md,
-                  opacity: pressed ? 0.72 : 1,
+                  opacity: isClosed ? 0.48 : pressed ? 0.72 : 1,
                 })}
               >
                 <ThemedText variant="caption">{outcome.name}</ThemedText>
@@ -176,6 +194,7 @@ export default function MarketDetailsScreen() {
 
         <TextInput
           accessibilityLabel="Stake in credits"
+          editable={!isClosed}
           keyboardType="number-pad"
           onChangeText={setStakeText}
           placeholder="Stake in credits"
@@ -198,7 +217,7 @@ export default function MarketDetailsScreen() {
 
         <Pressable
           accessibilityRole="button"
-          disabled={isSubmitting}
+          disabled={isSubmitting || isClosed}
           onPress={handlePlaceBet}
           style={({ pressed }) => ({
             minHeight: 50,
@@ -206,11 +225,11 @@ export default function MarketDetailsScreen() {
             justifyContent: 'center',
             borderRadius: radius.md,
             backgroundColor: colors.accent,
-            opacity: isSubmitting || pressed ? 0.72 : 1,
+            opacity: isClosed ? 0.48 : isSubmitting || pressed ? 0.72 : 1,
           })}
         >
           <ThemedText style={{ color: colors.accentText, fontWeight: '700' }}>
-            {isSubmitting ? 'Placing prediction…' : 'Place prediction'}
+            {isClosed ? 'Market closed' : isSubmitting ? 'Placing prediction…' : 'Place prediction'}
           </ThemedText>
         </Pressable>
       </View>

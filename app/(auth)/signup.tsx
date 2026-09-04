@@ -87,7 +87,7 @@ export default function SignupScreen() {
           autoComplete="email"
           keyboardType="email-address"
           textContentType="emailAddress"
-          placeholder="name@unsw.edu.au"
+          placeholder="z5555555@unsw.edu.au"
           value={email}
           onChangeText={setEmail}
         />

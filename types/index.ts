@@ -20,6 +20,13 @@ export type MarketOutcome = {
   wagerPool: number;
 };
 
+export type MarketPricePoint = {
+  /** YES probability at this point in time, 0..1. */
+  probability: number;
+  totalPool: number;
+  recordedAt: string;
+};
+
 export type Market = {
   id: string;
   title: string;

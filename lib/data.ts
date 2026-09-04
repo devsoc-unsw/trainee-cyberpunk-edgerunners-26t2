@@ -1,5 +1,6 @@
+import { isMarketExpired } from '@/lib/countdown';
 import { supabase } from '@/lib/supabase';
-import { AdminAction, AdminBet, AdminUser, Market, MarketOutcome, Position, UserRole } from '@/types';
+import { AdminAction, AdminBet, AdminUser, Market, MarketOutcome, MarketPricePoint, Position, UserRole } from '@/types';
 
 type MarketRow = {
   id: string;
@@ -43,12 +44,18 @@ type AdminActionRow = {
   profiles: { username: string | null; email: string | null } | null;
 };
 
-function getMarketStatus(status: string): Market['status'] {
+function getMarketStatus(status: string, closesAt: string): Market['status'] {
   const normalizedStatus = status.toUpperCase();
 
   if (normalizedStatus === 'CLOSED') return 'CLOSED';
   if (normalizedStatus === 'RESOLVED') return 'RESOLVED';
   if (normalizedStatus === 'VOIDED') return 'VOIDED';
+
+  // close_expired_markets() runs once a minute, so a market can still read as
+  // 'open' for up to a minute after its deadline. place_bet already rejects
+  // those bets, so show them as closed rather than inviting a bet that fails.
+  if (isMarketExpired(closesAt)) return 'CLOSED';
+
   return 'OPEN';
 }
 
@@ -92,7 +99,7 @@ function mapMarket(row: MarketRow): Market {
     title: row.title,
     description: row.description ?? '',
     category: row.category,
-    status: getMarketStatus(row.status),
+    status: getMarketStatus(row.status, row.closes_at),
     closesAt: row.closes_at,
     resolutionCriteria: row.resolution_criteria ?? '',
     yesProbability: totalPool > 0 ? (yesOutcome?.pool ?? 0) / totalPool : 0.5,
@@ -107,11 +114,15 @@ function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : 'Something went wrong. Please try again.';
 }
 
+// markets and outcomes are joined by two foreign keys -- outcomes.market_id and
+// markets.resolved_outcome_id -- so a bare `outcomes(...)` embed is ambiguous and
+// PostgREST rejects it with PGRST201. Every markets -> outcomes embed therefore
+// names the constraint it means.
 export async function fetchMarkets(options: { includeDeleted?: boolean } = {}) {
   let query = supabase
     .from('markets')
     .select(
-      'id, title, description, category, closes_at, status, resolution_criteria, created_at, resolved_outcome_id, resolved_at, deleted_at, outcomes(id, name, pool, liquidity, wager_pool)',
+      'id, title, description, category, closes_at, status, resolution_criteria, created_at, resolved_outcome_id, resolved_at, deleted_at, outcomes!outcomes_market_id_fkey(id, name, pool, liquidity, wager_pool)',
     )
     .order('created_at', { ascending: false });
 
@@ -127,13 +138,51 @@ export async function fetchMarket(id: string) {
   const { data, error } = await supabase
     .from('markets')
     .select(
-      'id, title, description, category, closes_at, status, resolution_criteria, created_at, resolved_outcome_id, resolved_at, deleted_at, outcomes(id, name, pool, liquidity, wager_pool)',
+      'id, title, description, category, closes_at, status, resolution_criteria, created_at, resolved_outcome_id, resolved_at, deleted_at, outcomes!outcomes_market_id_fkey(id, name, pool, liquidity, wager_pool)',
     )
     .eq('id', id)
     .maybeSingle();
 
   if (error) throw error;
   return data ? mapMarket(data as unknown as MarketRow) : null;
+}
+
+/**
+ * Probability history for a set of markets, oldest point first, grouped by
+ * market id. Fetched in one round trip rather than per card so the feed does
+ * not fire a request per market as it scrolls.
+ */
+export async function fetchMarketHistories(marketIds: string[]) {
+  const histories: Record<string, MarketPricePoint[]> = {};
+
+  if (marketIds.length === 0) return histories;
+
+  const { data, error } = await supabase
+    .from('market_probability_points')
+    .select('market_id, yes_probability, total_pool, recorded_at')
+    .in('market_id', marketIds)
+    .order('recorded_at', { ascending: true });
+
+  if (error) throw error;
+
+  for (const row of (data ?? []) as unknown as {
+    market_id: string;
+    yes_probability: number | string;
+    total_pool: number;
+    recorded_at: string;
+  }[]) {
+    const points = histories[row.market_id] ?? (histories[row.market_id] = []);
+
+    points.push({
+      // numeric arrives as a string over the wire when it exceeds JS precision,
+      // so coerce rather than trusting the type.
+      probability: Number(row.yes_probability),
+      totalPool: row.total_pool,
+      recordedAt: row.recorded_at,
+    });
+  }
+
+  return histories;
 }
 
 export async function fetchBalance(profileId: string) {
@@ -376,7 +425,7 @@ export async function fetchAdminBets() {
   const { data, error } = await supabase
     .from('positions')
     .select(
-      'id, profile_id, market_id, outcome_id, stake, payout, status, entry_probability, created_at, profiles(username, email), markets(title, outcomes(name, pool)), outcomes(name, pool)',
+      'id, profile_id, market_id, outcome_id, stake, payout, status, entry_probability, created_at, profiles(username, email), markets(title, outcomes!outcomes_market_id_fkey(name, pool)), outcomes(name, pool)',
     )
     .order('created_at', { ascending: false });
 
