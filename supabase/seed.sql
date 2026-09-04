@@ -165,4 +165,17 @@ values
 on conflict (market_id, name) do update
 set pool = excluded.pool;
 
+-- These markets are inserted straight into the table rather than through
+-- admin_create_market, so nothing has recorded their opening probability. The
+-- migration's backfill cannot help either: migrations run before this file, so
+-- there were no markets to backfill. Without this the feed chart has no point
+-- to anchor to and a market's first bet draws a flat line instead of a step.
+select private.record_probability_point(markets.id, 'MARKET_CREATED')
+from public.markets
+where not exists (
+    select 1
+    from public.market_probability_points
+    where market_probability_points.market_id = markets.id
+);
+
 commit;

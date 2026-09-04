@@ -127,6 +127,41 @@ export type Database = {
           },
         ]
       }
+      market_probability_points: {
+        Row: {
+          id: string
+          market_id: string
+          recorded_at: string
+          source: string
+          total_pool: number
+          yes_probability: number
+        }
+        Insert: {
+          id?: string
+          market_id: string
+          recorded_at?: string
+          source: string
+          total_pool: number
+          yes_probability: number
+        }
+        Update: {
+          id?: string
+          market_id?: string
+          recorded_at?: string
+          source?: string
+          total_pool?: number
+          yes_probability?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "market_probability_points_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       markets: {
         Row: {
           category: string
@@ -559,3 +594,4 @@ export const Constants = {
     Enums: {},
   },
 } as const
+
