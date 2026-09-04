@@ -27,7 +27,7 @@ export function BetSheet(props: Props) {
     outcome === "YES" ? market.yesProbability : 1 - market.yesProbability;
   const [stake, setStake] = useState("");
   const stakeNumber = Number(stake) || 0;
-  const payout = Math.round(stakeNumber / p);
+  const payout = p > 0 ? Math.round(stakeNumber / p) : stakeNumber;
 
   const handleConfirm = () => {
     Alert.alert("Confirm Bet", `Betting ${stake} credits on ${outcome}`, [
