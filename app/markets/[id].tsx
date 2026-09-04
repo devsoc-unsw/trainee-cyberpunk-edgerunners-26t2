@@ -12,7 +12,7 @@ import { Market } from '@/types';
 import { colors, radius, spacing } from '@/theme';
 
 export default function MarketDetailsScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, outcomeId } = useLocalSearchParams<{ id: string; outcomeId?: string }>();
   const [market, setMarket] = useState<Market | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -38,7 +38,10 @@ export default function MarketDetailsScreen() {
       .then((nextMarket) => {
         if (isMounted) {
           setMarket(nextMarket);
-          setSelectedOutcomeId(nextMarket?.outcomes?.[0]?.id ?? null);
+          const requestedOutcome = nextMarket?.outcomes?.find((outcome) => outcome.id === outcomeId);
+          setSelectedOutcomeId(
+            outcomeId ? requestedOutcome?.id ?? null : nextMarket?.outcomes?.[0]?.id ?? null,
+          );
         }
       })
       .catch(() => {
@@ -55,7 +58,7 @@ export default function MarketDetailsScreen() {
     return () => {
       isMounted = false;
     };
-  }, [id]);
+  }, [id, outcomeId]);
 
   const handlePlaceBet = async () => {
     const stake = Number.parseInt(stakeText.trim(), 10);

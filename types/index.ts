@@ -39,6 +39,8 @@ export type Market = {
   resolvedOutcomeId?: string;
   resolvedAt?: string;
   deletedAt?: string;
+  videoPath?: string;
+  videoDurationMs?: number;
   outcomes?: MarketOutcome[];
 };
 

@@ -15,6 +15,8 @@ type MarketRow = {
   resolved_outcome_id: string | null;
   resolved_at: string | null;
   deleted_at: string | null;
+  video_path: string | null;
+  video_duration_ms: number | null;
   outcomes: {
     id: string;
     name: string;
@@ -107,6 +109,8 @@ function mapMarket(row: MarketRow): Market {
     resolvedOutcomeId: row.resolved_outcome_id ?? undefined,
     resolvedAt: row.resolved_at ?? undefined,
     deletedAt: row.deleted_at ?? undefined,
+    videoPath: row.video_path ?? undefined,
+    videoDurationMs: row.video_duration_ms ?? undefined,
     outcomes,
   };
 }
@@ -123,7 +127,7 @@ export async function fetchMarkets(options: { includeDeleted?: boolean } = {}) {
   let query = supabase
     .from('markets')
     .select(
-      'id, title, description, category, closes_at, status, resolution_criteria, created_at, resolved_outcome_id, resolved_at, deleted_at, outcomes!outcomes_market_id_fkey(id, name, pool, liquidity, wager_pool)',
+      'id, title, description, category, closes_at, status, resolution_criteria, created_at, resolved_outcome_id, resolved_at, deleted_at, video_path, video_duration_ms, outcomes!outcomes_market_id_fkey(id, name, pool, liquidity, wager_pool)',
     )
     .order('created_at', { ascending: false });
 
@@ -139,7 +143,7 @@ export async function fetchMarket(id: string) {
   const { data, error } = await supabase
     .from('markets')
     .select(
-      'id, title, description, category, closes_at, status, resolution_criteria, created_at, resolved_outcome_id, resolved_at, deleted_at, outcomes!outcomes_market_id_fkey(id, name, pool, liquidity, wager_pool)',
+      'id, title, description, category, closes_at, status, resolution_criteria, created_at, resolved_outcome_id, resolved_at, deleted_at, video_path, video_duration_ms, outcomes!outcomes_market_id_fkey(id, name, pool, liquidity, wager_pool)',
     )
     .eq('id', id)
     .maybeSingle();
@@ -298,6 +302,8 @@ export async function createMarket(input: {
   closesAt: string;
   resolutionCriteria: string;
   yesPercentage?: number;
+  videoPath?: string | null;
+  videoDurationMs?: number | null;
 }) {
   const { data, error } = await supabase.rpc('admin_create_market', {
     p_title: input.title,
@@ -306,6 +312,8 @@ export async function createMarket(input: {
     p_closes_at: input.closesAt,
     p_resolution_criteria: input.resolutionCriteria,
     p_yes_percentage: input.yesPercentage ?? 50,
+    p_video_path: input.videoPath ?? null,
+    p_video_duration_ms: input.videoDurationMs ?? null,
   });
   if (error) throw new Error(error.message);
   return data;
@@ -319,6 +327,8 @@ export async function updateMarket(
     category: string;
     closesAt: string;
     resolutionCriteria: string;
+    videoPath?: string | null;
+    videoDurationMs?: number | null;
   },
 ) {
   const { error } = await supabase.rpc('admin_update_market', {
@@ -328,6 +338,8 @@ export async function updateMarket(
     p_category: input.category,
     p_closes_at: input.closesAt,
     p_resolution_criteria: input.resolutionCriteria,
+    p_video_path: input.videoPath ?? null,
+    p_video_duration_ms: input.videoDurationMs ?? null,
   });
   if (error) throw new Error(error.message);
 }

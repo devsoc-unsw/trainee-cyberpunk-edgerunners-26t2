@@ -3,9 +3,11 @@ import { router } from 'expo-router';
 import { View } from 'react-native';
 
 import { AdminActionButton, AdminField, AdminTextInput } from '@/components/admin/admin-components';
+import { MarketVideoField } from '@/components/admin/market-video-field';
 import { Screen } from '@/components/ui/screen';
 import { ThemedText } from '@/components/ui/themed-text';
 import { createMarket } from '@/lib/data';
+import { normalizeVideoDurationMs, removeUploadedVideo, uploadMarketVideo, validateExistingVideo, type PickedMarketVideo } from '@/lib/market-video';
 import { colors, spacing } from '@/theme';
 
 export default function CreateMarketScreen() {
@@ -15,6 +17,11 @@ export default function CreateMarketScreen() {
   const [closesAt, setClosesAt] = useState('');
   const [resolutionCriteria, setResolutionCriteria] = useState('');
   const [yesPercentage, setYesPercentage] = useState('50');
+  const [videoPath, setVideoPath] = useState('');
+  const [videoDuration, setVideoDuration] = useState('');
+  const [pickedVideo, setPickedVideo] = useState<PickedMarketVideo | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [uploadController, setUploadController] = useState<AbortController | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -39,7 +46,29 @@ export default function CreateMarketScreen() {
 
     setIsSubmitting(true);
 
+    let uploadedPath: string | null = null;
+
     try {
+      let nextVideoPath: string | null = null;
+      let nextVideoDuration: number | null = null;
+
+      if (pickedVideo) {
+        const controller = new AbortController();
+        setUploadController(controller);
+        setUploadProgress(0);
+        uploadedPath = await uploadMarketVideo(pickedVideo, {
+          signal: controller.signal,
+          onProgress: setUploadProgress,
+        });
+        setUploadController(null);
+        setUploadProgress(null);
+        nextVideoPath = uploadedPath;
+        nextVideoDuration = normalizeVideoDurationMs(pickedVideo.durationMs);
+      } else if (videoPath.trim()) {
+        nextVideoDuration = Number(videoDuration);
+        nextVideoPath = await validateExistingVideo(videoPath, nextVideoDuration);
+      }
+
       await createMarket({
         title: title.trim(),
         description: description.trim(),
@@ -47,12 +76,24 @@ export default function CreateMarketScreen() {
         closesAt,
         resolutionCriteria: resolutionCriteria.trim(),
         yesPercentage: parsedYesPercentage,
+        videoPath: nextVideoPath,
+        videoDurationMs: nextVideoDuration,
       });
       router.replace('/admin/markets');
     } catch (error) {
+      if (uploadedPath) {
+        try {
+          await removeUploadedVideo(uploadedPath);
+        } catch {
+          // The failed save remains the primary error. This best-effort cleanup
+          // only targets the object created by this attempt.
+        }
+      }
       setErrorMessage(error instanceof Error ? error.message : 'Market could not be created.');
     } finally {
       setIsSubmitting(false);
+      setUploadProgress(null);
+      setUploadController(null);
     }
   };
 
@@ -80,6 +121,18 @@ export default function CreateMarketScreen() {
         <AdminField label="Starting YES percentage">
           <AdminTextInput value={yesPercentage} onChangeText={setYesPercentage} keyboardType="number-pad" accessibilityLabel="Starting YES percentage" />
         </AdminField>
+        <MarketVideoField
+          disabled={isSubmitting}
+          durationText={videoDuration}
+          onCancel={() => uploadController?.abort()}
+          onDurationChange={setVideoDuration}
+          onError={setErrorMessage}
+          onPathChange={setVideoPath}
+          onPicked={setPickedVideo}
+          path={videoPath}
+          picked={pickedVideo}
+          progress={uploadProgress}
+        />
         {errorMessage ? <ThemedText style={{ color: colors.no }}>{errorMessage}</ThemedText> : null}
         <AdminActionButton disabled={isSubmitting} onPress={handleCreateMarket}>{isSubmitting ? 'Creating market…' : 'Create market'}</AdminActionButton>
       </View>
