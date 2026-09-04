@@ -34,6 +34,11 @@ export const styles = StyleSheet.create({
     color: colors.yes,
     fontWeight: '700',
   },
+  todayLoss: {
+    ...typography.body,
+    color: colors.no,
+    fontWeight: '700',
+  },
   divider: {
     width: 1,
     height: 64,

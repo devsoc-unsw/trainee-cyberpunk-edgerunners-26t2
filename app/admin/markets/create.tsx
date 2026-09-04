@@ -6,6 +6,7 @@ import { AdminActionButton, AdminField, AdminTextInput } from '@/components/admi
 import { MarketVideoField } from '@/components/admin/market-video-field';
 import { Screen } from '@/components/ui/screen';
 import { ThemedText } from '@/components/ui/themed-text';
+import { ADMIN_DATE_TIME_PLACEHOLDER, parseAdminDateTime } from '@/lib/admin-datetime';
 import { createMarket } from '@/lib/data';
 import { normalizeVideoDurationMs, removeUploadedVideo, uploadMarketVideo, validateExistingVideo, type PickedMarketVideo } from '@/lib/market-video';
 import { colors, spacing } from '@/theme';
@@ -29,12 +30,23 @@ export default function CreateMarketScreen() {
     setErrorMessage(null);
 
     if (!title.trim() || !category.trim() || !closesAt.trim() || !resolutionCriteria.trim()) {
-      setErrorMessage('Question, category, closing date, and resolution criteria are required.');
+      setErrorMessage('Question, category, closing time, and resolution criteria are required.');
       return;
     }
 
-    if (Number.isNaN(Date.parse(closesAt))) {
-      setErrorMessage('Use a valid closing date.');
+    // Parsed as local time, then sent as an ISO instant so neither PostgREST nor
+    // Postgres has to guess a timezone.
+    const parsedClosesAt = parseAdminDateTime(closesAt);
+
+    if (!parsedClosesAt) {
+      setErrorMessage(`Enter the closing time as ${ADMIN_DATE_TIME_PLACEHOLDER}.`);
+      return;
+    }
+
+    // admin_create_market rejects a closing date that is not in the future.
+    // Catching it here gives a clearer message than the raised exception.
+    if (parsedClosesAt.getTime() <= Date.now()) {
+      setErrorMessage('Pick a closing time in the future.');
       return;
     }
 
@@ -73,7 +85,7 @@ export default function CreateMarketScreen() {
         title: title.trim(),
         description: description.trim(),
         category: category.trim(),
-        closesAt,
+        closesAt: parsedClosesAt.toISOString(),
         resolutionCriteria: resolutionCriteria.trim(),
         yesPercentage: parsedYesPercentage,
         videoPath: nextVideoPath,
@@ -116,8 +128,16 @@ export default function CreateMarketScreen() {
           <AdminField label="Category">
             <AdminTextInput value={category} onChangeText={setCategory} placeholder="e.g. Campus" accessibilityLabel="Category" />
           </AdminField>
-          <AdminField label="Closing date">
-            <AdminTextInput value={closesAt} onChangeText={setClosesAt} placeholder="YYYY-MM-DD" accessibilityLabel="Closing date" />
+          <AdminField label="Closes at">
+            <AdminTextInput
+              value={closesAt}
+              onChangeText={setClosesAt}
+              placeholder={ADMIN_DATE_TIME_PLACEHOLDER}
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="numbers-and-punctuation"
+              accessibilityLabel="Closing date and time"
+            />
           </AdminField>
           <AdminField label="Resolution criteria">
             <AdminTextInput value={resolutionCriteria} onChangeText={setResolutionCriteria} placeholder="What counts as YES?" multiline numberOfLines={4} accessibilityLabel="Resolution criteria" />

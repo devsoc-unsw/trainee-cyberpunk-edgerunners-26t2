@@ -7,6 +7,7 @@ import { MarketVideoField } from '@/components/admin/market-video-field';
 import { PlaceholderState } from '@/components/ui/placeholder-state';
 import { Screen } from '@/components/ui/screen';
 import { ThemedText } from '@/components/ui/themed-text';
+import { ADMIN_DATE_TIME_PLACEHOLDER, formatAdminDateTime, parseAdminDateTime } from '@/lib/admin-datetime';
 import { fetchMarket, updateMarket } from '@/lib/data';
 import { normalizeVideoDurationMs, removeUploadedVideo, uploadMarketVideo, validateExistingVideo, type PickedMarketVideo } from '@/lib/market-video';
 import { colors, spacing } from '@/theme';
@@ -41,7 +42,7 @@ export default function EditMarketScreen() {
           setTitle(nextMarket.title);
           setDescription(nextMarket.description);
           setCategory(nextMarket.category);
-          setClosesAt(nextMarket.closesAt);
+          setClosesAt(formatAdminDateTime(new Date(nextMarket.closesAt)));
           setResolutionCriteria(nextMarket.resolutionCriteria);
           setVideoPath(nextMarket.videoPath ?? '');
           setVideoDuration(nextMarket.videoDurationMs ? String(nextMarket.videoDurationMs) : '');
@@ -53,7 +54,16 @@ export default function EditMarketScreen() {
 
   const handleSave = async () => {
     if (!id || !title.trim() || !category.trim() || !closesAt.trim() || !resolutionCriteria.trim()) {
-      setErrorMessage('Question, category, closing date, and resolution criteria are required.');
+      setErrorMessage('Question, category, closing time, and resolution criteria are required.');
+      return;
+    }
+
+    // admin_update_market accepts a past closing time (to close a market early
+    // or correct a mistake), so this only checks the format, not the ordering.
+    const parsedClosesAt = parseAdminDateTime(closesAt);
+
+    if (!parsedClosesAt) {
+      setErrorMessage(`Enter the closing time as ${ADMIN_DATE_TIME_PLACEHOLDER}.`);
       return;
     }
 
@@ -87,7 +97,7 @@ export default function EditMarketScreen() {
         title: title.trim(),
         description: description.trim(),
         category: category.trim(),
-        closesAt,
+        closesAt: parsedClosesAt.toISOString(),
         resolutionCriteria: resolutionCriteria.trim(),
         videoPath: nextVideoPath,
         videoDurationMs: nextVideoDuration,
@@ -130,8 +140,16 @@ export default function EditMarketScreen() {
         <AdminField label="Category">
           <AdminTextInput value={category} onChangeText={setCategory} accessibilityLabel="Category" />
         </AdminField>
-        <AdminField label="Closing date">
-          <AdminTextInput value={closesAt} onChangeText={setClosesAt} accessibilityLabel="Closing date" />
+        <AdminField label="Closes at">
+          <AdminTextInput
+            value={closesAt}
+            onChangeText={setClosesAt}
+            placeholder={ADMIN_DATE_TIME_PLACEHOLDER}
+            autoCapitalize="none"
+            autoCorrect={false}
+            keyboardType="numbers-and-punctuation"
+            accessibilityLabel="Closing date and time"
+          />
         </AdminField>
         <AdminField label="Resolution criteria">
           <AdminTextInput value={resolutionCriteria} onChangeText={setResolutionCriteria} multiline numberOfLines={4} accessibilityLabel="Resolution criteria" />
