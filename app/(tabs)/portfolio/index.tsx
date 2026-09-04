@@ -1,19 +1,19 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
-import { ActivityIndicator, RefreshControl, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, RefreshControl, View } from 'react-native';
 
+import { styles } from '@/components/portfolio/portfolio.styles';
 import { PlaceholderState } from '@/components/ui/placeholder-state';
 import { Screen } from '@/components/ui/screen';
 import { ThemedText } from '@/components/ui/themed-text';
 import { fetchPositions } from '@/lib/data';
 import { useSession } from '@/state/session';
-import { colors, radius, spacing, typography } from '@/theme';
+import { colors } from '@/theme';
 import { Position } from '@/types';
 
 function formatCredits(value: number) {
   return value.toLocaleString();
 }
-
 function formatRelativeDate(dateValue?: string) {
   if (!dateValue) {
     return 'Recently';
@@ -72,7 +72,6 @@ function BalanceCard({ balance, todayProfit, winRate }: { balance: number; today
     </View>
   );
 }
-
 function BetCard({ position, history = false }: { position: Position; history?: boolean }) {
   const isYes = position.outcome === 'YES';
   const outcomeColor = isYes ? colors.yes : colors.no;
@@ -190,10 +189,10 @@ export default function PortfolioScreen() {
     : 0;
   const todayProfit = historyPositions
     .filter((position) => {
-      if (!position.placedAt) {
+      if (!position.settledAt) {
         return false;
       }
-      return new Date(position.placedAt).toDateString() === new Date().toDateString();
+      return new Date(position.settledAt).toDateString() === new Date().toDateString();
     })
     .reduce((total, position) => total + getPositionProfit(position), 0);
 
@@ -254,101 +253,3 @@ export default function PortfolioScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  balanceCard: {
-    minHeight: 168,
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: spacing.xl,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.lg,
-    borderCurve: 'continuous',
-  },
-  balanceColumn: {
-    flex: 1,
-    gap: spacing.xs,
-  },
-  balanceLabel: {
-    ...typography.body,
-    color: colors.muted,
-  },
-  balanceValue: {
-    color: colors.text,
-    fontSize: 40,
-    lineHeight: 46,
-    fontWeight: '700',
-    letterSpacing: -0.6,
-  },
-  todayProfit: {
-    ...typography.body,
-    color: colors.yes,
-    fontWeight: '700',
-  },
-  divider: {
-    width: 1,
-    height: 64,
-    marginHorizontal: spacing.xl,
-    backgroundColor: colors.border,
-  },
-  winRateColumn: {
-    width: 84,
-    gap: spacing.xs,
-  },
-  section: {
-    gap: spacing.xl + spacing.xs,
-  },
-  activeSection: {
-    marginTop: spacing.xl,
-  },
-  historySection: {
-    marginTop: spacing.md,
-  },
-  cardList: {
-    gap: spacing.xl + spacing.xs,
-  },
-  betCard: {
-    minHeight: 108,
-    justifyContent: 'space-between',
-    gap: spacing.sm,
-    padding: spacing.lg,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.lg,
-    borderCurve: 'continuous',
-  },
-  betTopRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.md,
-  },
-  question: {
-    flex: 1,
-    flexShrink: 1,
-  },
-  outcome: {
-    ...typography.body,
-    fontWeight: '700',
-  },
-  historyResult: {
-    ...typography.body,
-    flexShrink: 0,
-    fontWeight: '700',
-  },
-  betDetails: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: spacing.md,
-  },
-  detail: {
-    color: colors.muted,
-    flexShrink: 1,
-  },
-  emptyText: {
-    ...typography.body,
-    color: colors.muted,
-    paddingVertical: spacing.sm,
-  },
-});

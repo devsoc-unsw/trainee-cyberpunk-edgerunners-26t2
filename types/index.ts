@@ -39,6 +39,8 @@ export type Market = {
   resolvedOutcomeId?: string;
   resolvedAt?: string;
   deletedAt?: string;
+  videoPath?: string;
+  videoDurationMs?: number;
   outcomes?: MarketOutcome[];
 };
 
@@ -54,6 +56,7 @@ export type Position = {
   entryProbability?: number;
   marketTitle?: string;
   placedAt?: string;
+  settledAt?: string;
 };
 
 export type AccountStatus = 'ACTIVE' | 'SUSPENDED';
