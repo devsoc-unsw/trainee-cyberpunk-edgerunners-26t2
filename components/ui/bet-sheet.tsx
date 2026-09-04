@@ -81,6 +81,7 @@ export function BetSheet(props: Props) {
             value={stake}
             onChangeText={setStake}
             keyboardType="number-pad"
+            maxLength={3}
             style={styles.inputField}
           />
           <View
