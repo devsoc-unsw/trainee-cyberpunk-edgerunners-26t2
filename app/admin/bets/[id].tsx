@@ -2,7 +2,12 @@ import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 
-import { AdminActionButton, AdminRow, AdminSectionLabel, AdminStatus } from '@/components/admin/admin-components';
+import {
+  AdminActionButton,
+  AdminRow,
+  AdminSectionLabel,
+  AdminStatus,
+} from '@/components/admin/admin-components';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { PlaceholderState } from '@/components/ui/placeholder-state';
 import { Screen } from '@/components/ui/screen';
@@ -34,7 +39,11 @@ export default function AdminBetDetailsScreen() {
     }
   }, [id]);
 
-  useFocusEffect(useCallback(() => { void load(); }, [load]));
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load])
+  );
 
   const handleRefund = async () => {
     if (!id) return;
@@ -45,22 +54,52 @@ export default function AdminBetDetailsScreen() {
       setIsConfirming(false);
       await load();
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'The bet could not be refunded.');
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : 'The bet could not be refunded.'
+      );
     } finally {
       setIsSubmitting(false);
     }
   };
 
   if (isLoading) {
-    return <Screen centered><ActivityIndicator color={colors.accent} /></Screen>;
+    return (
+      <Screen centered>
+        <ActivityIndicator color={colors.accent} />
+      </Screen>
+    );
   }
 
-  if (!bet) return <Screen centered><PlaceholderState title={loadError ? 'Bet unavailable' : 'Bet not found'} description={loadError ? 'Try again.' : 'Check the bet ID and try again.'} /><AdminActionButton onPress={() => { setIsLoading(true); void load(); }}>Try again</AdminActionButton></Screen>;
+  if (!bet) {
+    const title = loadError ? 'Bet unavailable' : 'Bet not found';
+    const description = loadError
+      ? 'Try again.'
+      : 'Check the bet ID and try again.';
+
+    return (
+      <Screen centered>
+        <PlaceholderState title={title} description={description} />
+        <AdminActionButton
+          onPress={() => {
+            setIsLoading(true);
+            void load();
+          }}
+        >
+          Try again
+        </AdminActionButton>
+      </Screen>
+    );
+  }
 
   return (
     <Screen>
       <View style={{ gap: spacing.sm }}>
-        <AdminStatus label={bet.status} tone={bet.status === 'REFUNDED' ? 'warning' : 'positive'} />
+        <AdminStatus
+          label={bet.status}
+          tone={bet.status === 'REFUNDED' ? 'warning' : 'positive'}
+        />
         <ThemedText variant="title">{bet.userName}</ThemedText>
         <ThemedText variant="body">{bet.marketTitle}</ThemedText>
       </View>
@@ -68,16 +107,31 @@ export default function AdminBetDetailsScreen() {
         <AdminSectionLabel>Bet details</AdminSectionLabel>
         <AdminRow title="Outcome" value={bet.outcome} />
         <AdminRow title="Stake" value={`${bet.stake} credits`} />
-        <AdminRow title="Potential payout" value={`${bet.potentialPayout} credits`} />
-        <AdminRow title="Odds when placed" value={`${Math.round(bet.oddsAtPlacement * 100)}%`} />
+        <AdminRow
+          title="Potential payout"
+          value={`${bet.potentialPayout} credits`}
+        />
+        <AdminRow
+          title="Odds when placed"
+          value={`${Math.round(bet.oddsAtPlacement * 100)}%`}
+        />
         <AdminRow title="Placed" value={bet.placedAt} />
       </View>
       {bet.status === 'OPEN' ? (
         <>
-          <AdminActionButton danger onPress={() => { setReason(''); setErrorMessage(null); setIsConfirming(true); }}>
+          <AdminActionButton
+            danger
+            onPress={() => {
+              setReason('');
+              setErrorMessage(null);
+              setIsConfirming(true);
+            }}
+          >
             Remove and refund bet
           </AdminActionButton>
-          <ThemedText variant="caption" style={{ color: colors.muted }}>Refund amount: {bet.stake} credits</ThemedText>
+          <ThemedText variant="caption" style={{ color: colors.muted }}>
+            Refund amount: {bet.stake} credits
+          </ThemedText>
         </>
       ) : null}
       <ConfirmDialog
