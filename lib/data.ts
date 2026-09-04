@@ -114,11 +114,15 @@ function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : 'Something went wrong. Please try again.';
 }
 
+// markets and outcomes are joined by two foreign keys -- outcomes.market_id and
+// markets.resolved_outcome_id -- so a bare `outcomes(...)` embed is ambiguous and
+// PostgREST rejects it with PGRST201. Every markets -> outcomes embed therefore
+// names the constraint it means.
 export async function fetchMarkets(options: { includeDeleted?: boolean } = {}) {
   let query = supabase
     .from('markets')
     .select(
-      'id, title, description, category, closes_at, status, resolution_criteria, created_at, resolved_outcome_id, resolved_at, deleted_at, outcomes(id, name, pool, liquidity, wager_pool)',
+      'id, title, description, category, closes_at, status, resolution_criteria, created_at, resolved_outcome_id, resolved_at, deleted_at, outcomes!outcomes_market_id_fkey(id, name, pool, liquidity, wager_pool)',
     )
     .order('created_at', { ascending: false });
 
@@ -134,7 +138,7 @@ export async function fetchMarket(id: string) {
   const { data, error } = await supabase
     .from('markets')
     .select(
-      'id, title, description, category, closes_at, status, resolution_criteria, created_at, resolved_outcome_id, resolved_at, deleted_at, outcomes(id, name, pool, liquidity, wager_pool)',
+      'id, title, description, category, closes_at, status, resolution_criteria, created_at, resolved_outcome_id, resolved_at, deleted_at, outcomes!outcomes_market_id_fkey(id, name, pool, liquidity, wager_pool)',
     )
     .eq('id', id)
     .maybeSingle();
@@ -421,7 +425,7 @@ export async function fetchAdminBets() {
   const { data, error } = await supabase
     .from('positions')
     .select(
-      'id, profile_id, market_id, outcome_id, stake, payout, status, entry_probability, created_at, profiles(username, email), markets(title, outcomes(name, pool)), outcomes(name, pool)',
+      'id, profile_id, market_id, outcome_id, stake, payout, status, entry_probability, created_at, profiles(username, email), markets(title, outcomes!outcomes_market_id_fkey(name, pool)), outcomes(name, pool)',
     )
     .order('created_at', { ascending: false });
 
