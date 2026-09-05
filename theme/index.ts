@@ -14,6 +14,34 @@ export const colors = {
   no: '#FF7272',
 } as const;
 
+/**
+ * Home and Search intentionally use the discovery palette from the product
+ * mocks. Keep it separate so the rest of the app retains the yellow brand
+ * accent above.
+ */
+export const discoveryColors = {
+  background: colors.background,
+  surface: colors.surface,
+  elevatedSurface: '#20252D',
+  thumbnail: '#252B34',
+  text: colors.text,
+  muted: colors.muted,
+  subtle: '#737C88',
+  border: colors.border,
+  accent: colors.accent,
+  accentSoft: '#3A3218',
+  accentText: colors.accentText,
+  yes: colors.yes,
+  no: colors.no,
+} as const;
+
+export const discoveryLayout = {
+  screenEdge: 20,
+  headerGap: 12,
+  filterHeight: 36,
+  tabClearance: 76,
+} as const;
+
 export const spacing = {
   xs: 4,
   sm: 8,
