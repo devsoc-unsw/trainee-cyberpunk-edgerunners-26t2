@@ -32,7 +32,13 @@ type LeadingSnapshot = {
 function SearchIcon() {
   return (
     <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
-      <Circle cx={11} cy={11} r={6.5} stroke={discoveryColors.accent} strokeWidth={2} />
+      <Circle
+        cx={11}
+        cy={11}
+        r={6.5}
+        stroke={discoveryColors.accent}
+        strokeWidth={2}
+      />
       <Line
         x1={16}
         y1={16}
@@ -101,7 +107,8 @@ function getLeadingSnapshot(
   return {
     outcome: isYesLeading ? 'YES' : 'NO',
     probability: isYesLeading ? currentYes : 1 - currentYes,
-    movement: yesMovement === null ? null : isYesLeading ? yesMovement : -yesMovement,
+    movement:
+      yesMovement === null ? null : isYesLeading ? yesMovement : -yesMovement,
   };
 }
 
@@ -115,7 +122,9 @@ export default function SearchScreen() {
   const insets = useSafeAreaInsets();
   const [query, setQuery] = useState('');
   const [allMarkets, setAllMarkets] = useState<Market[]>([]);
-  const [histories, setHistories] = useState<Record<string, MarketPricePoint[]>>({});
+  const [histories, setHistories] = useState<
+    Record<string, MarketPricePoint[]>
+  >({});
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -127,7 +136,9 @@ export default function SearchScreen() {
       setErrorMessage(null);
 
       try {
-        setHistories(await fetchMarketHistories(markets.map((market) => market.id)));
+        setHistories(
+          await fetchMarketHistories(markets.map((market) => market.id)),
+        );
       } catch {
         setHistories({});
       }
@@ -139,10 +150,13 @@ export default function SearchScreen() {
     }
   }, []);
 
-  // Refresh when returning to the tab so probabilities and movement stay current.
-  useFocusEffect(useCallback(() => {
-    void load();
-  }, [load]));
+  // Refresh when returning to the tab so probabilities and movement stay
+  // current.
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load]),
+  );
 
   const handleRefresh = useCallback(() => {
     setIsRefreshing(true);
@@ -154,13 +168,17 @@ export default function SearchScreen() {
     if (!normalizedQuery) return allMarkets;
 
     return allMarkets.filter((market) =>
-      `${market.title} ${market.category}`.toLowerCase().includes(normalizedQuery),
+      `${market.title} ${market.category}`
+        .toLowerCase()
+        .includes(normalizedQuery),
     );
   }, [allMarkets, query]);
 
   return (
     <View style={styles.container}>
-      <View style={[styles.searchHeader, { paddingTop: insets.top + spacing.sm }]}>
+      <View
+        style={[styles.searchHeader, { paddingTop: insets.top + spacing.sm }]}
+      >
         <View style={styles.searchCapsule}>
           <SearchIcon />
           <TextInput
@@ -180,7 +198,10 @@ export default function SearchScreen() {
           accessibilityRole="button"
           hitSlop={8}
           onPress={() => router.replace('/(tabs)/feed')}
-          style={({ pressed }) => [styles.closeButton, pressed && styles.pressed]}
+          style={({ pressed }) => [
+            styles.closeButton,
+            pressed && styles.pressed,
+          ]}
         >
           <CloseIcon />
         </Pressable>
@@ -198,7 +219,10 @@ export default function SearchScreen() {
           <Pressable
             accessibilityRole="button"
             onPress={handleRefresh}
-            style={({ pressed }) => [styles.retryButton, pressed && styles.pressed]}
+            style={({ pressed }) => [
+              styles.retryButton,
+              pressed && styles.pressed,
+            ]}
           >
             <Text style={styles.retryLabel}>Try again</Text>
           </Pressable>
@@ -232,7 +256,9 @@ export default function SearchScreen() {
           ListEmptyComponent={
             <View style={styles.centeredState}>
               <Text style={styles.stateTitle}>No markets found</Text>
-              <Text style={styles.stateDescription}>Try a market title or category.</Text>
+              <Text style={styles.stateDescription}>
+                Try a market title or category.
+              </Text>
             </View>
           }
           renderItem={({ item }) => {
@@ -244,14 +270,24 @@ export default function SearchScreen() {
                   ? discoveryColors.yes
                   : discoveryColors.no;
             const outcomeColor =
-              snapshot.outcome === 'YES' ? discoveryColors.yes : discoveryColors.no;
+              snapshot.outcome === 'YES'
+                ? discoveryColors.yes
+                : discoveryColors.no;
 
             return (
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={`Open ${item.title}`}
-                onPress={() => router.push(`/markets/${item.id}`)}
-                style={({ pressed }) => [styles.resultRow, pressed && styles.pressed]}
+                onPress={() =>
+                  router.navigate({
+                    pathname: '/(tabs)/feed',
+                    params: { marketId: item.id },
+                  })
+                }
+                style={({ pressed }) => [
+                  styles.resultRow,
+                  pressed && styles.pressed,
+                ]}
               >
                 <MarketThumbnail />
                 <View style={styles.resultCopy}>
@@ -259,7 +295,9 @@ export default function SearchScreen() {
                     {item.title}
                   </Text>
                   <View style={styles.probabilityRow}>
-                    <Text style={[styles.outcomeLabel, { color: outcomeColor }]}>
+                    <Text
+                      style={[styles.outcomeLabel, { color: outcomeColor }]}
+                    >
                       {snapshot.outcome}
                     </Text>
                     <Text style={styles.probabilityValue}>
@@ -349,8 +387,16 @@ const styles = StyleSheet.create({
     lineHeight: 21,
     fontWeight: '600',
   },
-  probabilityRow: { flexDirection: 'row', alignItems: 'baseline', gap: spacing.sm },
-  outcomeLabel: { ...typography.caption, fontWeight: '800', letterSpacing: 0.5 },
+  probabilityRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: spacing.sm,
+  },
+  outcomeLabel: {
+    ...typography.caption,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
   probabilityValue: {
     ...typography.subhead,
     color: discoveryColors.text,
@@ -365,7 +411,11 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     padding: spacing.xl,
   },
-  stateTitle: { ...typography.headline, color: discoveryColors.text, textAlign: 'center' },
+  stateTitle: {
+    ...typography.headline,
+    color: discoveryColors.text,
+    textAlign: 'center',
+  },
   stateDescription: {
     ...typography.subhead,
     color: discoveryColors.muted,

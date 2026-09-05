@@ -14,7 +14,9 @@ export function BalanceHeader({ variant = 'default' }: Props) {
  
   return (
     <View style={[styles.container, isCompact && styles.compactContainer]}>
-      <Text style={[styles.text, isCompact && styles.compactText]}>{balanceText}</Text>
+      <Text style={[styles.text, isCompact && styles.compactText]}>
+        {balanceText}
+      </Text>
     </View>
   );
 };

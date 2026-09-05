@@ -1,6 +1,6 @@
 import { useEvent } from 'expo';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -93,7 +93,9 @@ function MarketChart({
           <Text style={styles.priceLabel}>YES price</Text>
           <View style={styles.priceValueRow}>
             <Text style={styles.priceValue}>{yes}¢</Text>
-            <Text style={[styles.priceChange, change < 0 && styles.negativeChange]}>
+            <Text
+              style={[styles.priceChange, change < 0 && styles.negativeChange]}
+            >
               {change >= 0 ? '+' : ''}
               {change}¢
             </Text>
@@ -177,7 +179,13 @@ function MarketVideo({
   );
 }
 
-function BetButton({ outcome, onPress }: { outcome: Outcome; onPress: () => void }) {
+function BetButton({
+  outcome,
+  onPress,
+}: {
+  outcome: Outcome;
+  onPress: () => void;
+}) {
   const isYes = outcome === 'YES';
 
   return (
@@ -215,8 +223,13 @@ function MarketPage({
     (total, outcome) => total + outcome.wagerPool,
     0,
   );
-  const showVideo = Boolean(item.market.videoPath && shouldLoadVideo && !videoFailed);
+  const showVideo = Boolean(
+    item.market.videoPath && shouldLoadVideo && !videoFailed,
+  );
   const compact = height < 720;
+  const bottomClearance = compact
+    ? spacing.xxxl + spacing.md
+    : discoveryLayout.tabClearance;
 
   return (
     <View
@@ -225,8 +238,7 @@ function MarketPage({
         {
           height,
           paddingTop: headerClearance + spacing.md,
-          paddingBottom:
-            bottomInset + (compact ? spacing.xxxl + spacing.md : discoveryLayout.tabClearance),
+          paddingBottom: bottomInset + bottomClearance,
         },
       ]}
     >
@@ -242,7 +254,11 @@ function MarketPage({
       {showVideo ? (
         <LinearGradient
           pointerEvents="none"
-          colors={['rgba(13,11,18,0.6)', 'rgba(13,11,18,0.06)', 'rgba(13,11,18,0.94)']}
+          colors={[
+            'rgba(13,11,18,0.6)',
+            'rgba(13,11,18,0.06)',
+            'rgba(13,11,18,0.94)',
+          ]}
           locations={[0, 0.42, 1]}
           style={StyleSheet.absoluteFill}
         />
@@ -265,11 +281,15 @@ function MarketPage({
             pressed && styles.pressed,
           ]}
         >
-          <Text style={styles.soundText}>{muted ? 'Sound off' : 'Sound on'}</Text>
+          <Text style={styles.soundText}>
+            {muted ? 'Sound off' : 'Sound on'}
+          </Text>
         </Pressable>
       ) : null}
 
-      <View style={[styles.marketDetails, compact && styles.compactMarketDetails]}>
+      <View
+        style={[styles.marketDetails, compact && styles.compactMarketDetails]}
+      >
         <View style={styles.marketMeta}>
           <View style={styles.categoryChip}>
             <Text style={styles.category}>{item.market.category}</Text>
@@ -281,12 +301,22 @@ function MarketPage({
             style={styles.countdown}
           />
         </View>
-        <Text style={[styles.title, compact && styles.compactTitle]} numberOfLines={compact ? 3 : 4}>
+        <Text
+          style={[styles.title, compact && styles.compactTitle]}
+          numberOfLines={compact ? 3 : 4}
+        >
           {item.market.title}
         </Text>
-        <Text style={styles.volume}>Volume: {volume.toLocaleString()} credits</Text>
+        <Text style={styles.volume}>
+          Volume: {volume.toLocaleString()} credits
+        </Text>
 
-        <View style={[styles.probabilityBlock, compact && styles.compactProbabilityBlock]}>
+        <View
+          style={[
+            styles.probabilityBlock,
+            compact && styles.compactProbabilityBlock,
+          ]}
+        >
           <View style={styles.probabilityLabels}>
             <Text style={styles.yesProbability}>YES {yes}%</Text>
             <Text style={styles.noProbability}>NO {no}%</Text>
@@ -302,7 +332,10 @@ function MarketPage({
             outcome="YES"
             onPress={() => onSelectOutcome(item.market, 'YES')}
           />
-          <BetButton outcome="NO" onPress={() => onSelectOutcome(item.market, 'NO')} />
+          <BetButton
+            outcome="NO"
+            onPress={() => onSelectOutcome(item.market, 'NO')}
+          />
         </View>
       </View>
     </View>
@@ -347,7 +380,12 @@ function DiscoveryHeader({
                 pressed && styles.pressed,
               ]}
             >
-              <Text style={[styles.filterLabel, selected && styles.selectedFilterLabel]}>
+              <Text
+                style={[
+                  styles.filterLabel,
+                  selected && styles.selectedFilterLabel,
+                ]}
+              >
                 {category}
               </Text>
             </Pressable>
@@ -360,16 +398,22 @@ function DiscoveryHeader({
 
 export default function FeedScreen() {
   const insets = useSafeAreaInsets();
+  const { marketId } = useLocalSearchParams<{ marketId?: string }>();
   const listRef = useRef<FlatList<FeedItem>>(null);
   const [markets, setMarkets] = useState<Market[]>([]);
-  const [histories, setHistories] = useState<Record<string, MarketPricePoint[]>>({});
-  const [selectedCategory, setSelectedCategory] = useState<DiscoveryCategory>('All');
+  const [histories, setHistories] = useState<
+    Record<string, MarketPricePoint[]>
+  >({});
+  const [selectedCategory, setSelectedCategory] =
+    useState<DiscoveryCategory>('All');
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [viewport, setViewport] = useState({ height: 0, width: 0 });
   const [activeIndex, setActiveIndex] = useState(0);
   const [isFocused, setIsFocused] = useState(false);
-  const [isAppActive, setIsAppActive] = useState(AppState.currentState === 'active');
+  const [isAppActive, setIsAppActive] = useState(
+    AppState.currentState === 'active',
+  );
   const [isSwiping, setIsSwiping] = useState(false);
   const [muted, setMuted] = useState(true);
   const [activeBet, setActiveBet] = useState<{
@@ -378,6 +422,7 @@ export default function FeedScreen() {
   } | null>(null);
   const { reduceMotion } = useAccessibility();
   const headerClearance = insets.top + 108;
+  const requestedMarketId = Array.isArray(marketId) ? marketId[0] : marketId;
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (state) =>
@@ -402,7 +447,9 @@ export default function FeedScreen() {
           if (isMounted()) setHistories({});
         }
       } catch {
-        if (isMounted()) setErrorMessage('Markets could not be loaded. Please try again.');
+        if (isMounted()) {
+          setErrorMessage('Markets could not be loaded. Please try again.');
+        }
       } finally {
         if (isMounted()) setIsLoading(false);
       }
@@ -429,16 +476,22 @@ export default function FeedScreen() {
     },
     [],
   );
-  const handleMomentumEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+  const handleMomentumEnd = (
+    event: NativeSyntheticEvent<NativeScrollEvent>,
+  ) => {
     if (viewport.height) {
-      setActiveIndex(Math.round(event.nativeEvent.contentOffset.y / viewport.height));
+      setActiveIndex(
+        Math.round(event.nativeEvent.contentOffset.y / viewport.height),
+      );
     }
     setIsSwiping(false);
   };
   const filteredMarkets = useMemo(() => {
     if (selectedCategory === 'All') return markets;
     const category = selectedCategory.toLowerCase();
-    return markets.filter((market) => market.category.trim().toLowerCase() === category);
+    return markets.filter(
+      (market) => market.category.trim().toLowerCase() === category,
+    );
   }, [markets, selectedCategory]);
   const items = useMemo<FeedItem[]>(
     () =>
@@ -449,10 +502,43 @@ export default function FeedScreen() {
       })),
     [filteredMarkets, histories],
   );
-  const canPlay = isFocused && isAppActive && !isSwiping && !reduceMotion && !activeBet;
-  const handleSelectOutcome = useCallback((market: Market, outcome: Outcome) => {
-    setActiveBet({ market, outcome });
-  }, []);
+
+  // A market selected from Search must always be reachable, even if the user
+  // previously left Home on a narrower category filter.
+  useEffect(() => {
+    if (requestedMarketId && selectedCategory !== 'All') {
+      requestAnimationFrame(() => {
+        setSelectedCategory('All');
+        setActiveIndex(0);
+      });
+    }
+  }, [requestedMarketId, selectedCategory]);
+
+  // Search hands Home a market ID so the existing full-screen feed remains the
+  // single market experience. getItemLayout makes this jump deterministic.
+  useEffect(() => {
+    if (!requestedMarketId || !viewport.height || selectedCategory !== 'All') {
+      return;
+    }
+    const index = items.findIndex((item) => item.market.id === requestedMarketId);
+    if (index < 0) return;
+
+    requestAnimationFrame(() => {
+      setActiveIndex(index);
+      listRef.current?.scrollToOffset({
+        offset: viewport.height * index,
+        animated: false,
+      });
+    });
+  }, [items, requestedMarketId, selectedCategory, viewport.height]);
+  const canPlay =
+    isFocused && isAppActive && !isSwiping && !reduceMotion && !activeBet;
+  const handleSelectOutcome = useCallback(
+    (market: Market, outcome: Outcome) => {
+      setActiveBet({ market, outcome });
+    },
+    [],
+  );
   const handleSelectCategory = useCallback((category: DiscoveryCategory) => {
     setSelectedCategory(category);
     setActiveIndex(0);
@@ -489,7 +575,9 @@ export default function FeedScreen() {
   return (
     <View
       style={styles.container}
-      onLayout={(event: LayoutChangeEvent) => setViewport(event.nativeEvent.layout)}
+      onLayout={(event: LayoutChangeEvent) =>
+        setViewport(event.nativeEvent.layout)
+      }
     >
       <DiscoveryHeader
         selectedCategory={selectedCategory}
@@ -511,7 +599,10 @@ export default function FeedScreen() {
               setIsLoading(true);
               void loadMarkets();
             }}
-            style={({ pressed }) => [styles.retryButton, pressed && styles.pressed]}
+            style={({ pressed }) => [
+              styles.retryButton,
+              pressed && styles.pressed,
+            ]}
           >
             <Text style={styles.retryLabel}>Try again</Text>
           </Pressable>
@@ -519,7 +610,9 @@ export default function FeedScreen() {
       ) : items.length === 0 ? (
         <View style={[styles.centeredState, { paddingTop: headerClearance }]}>
           <Text style={styles.stateTitle}>
-            {selectedCategory === 'All' ? 'No markets yet' : `No ${selectedCategory} markets yet`}
+            {selectedCategory === 'All'
+              ? 'No markets yet'
+              : `No ${selectedCategory} markets yet`}
           </Text>
           <Text style={styles.stateText}>
             {selectedCategory === 'All'
@@ -624,7 +717,11 @@ const styles = StyleSheet.create({
     backgroundColor: discoveryColors.accent,
     borderColor: discoveryColors.accent,
   },
-  filterLabel: { ...typography.subhead, color: discoveryColors.muted, fontWeight: '600' },
+  filterLabel: {
+    ...typography.subhead,
+    color: discoveryColors.muted,
+    fontWeight: '600',
+  },
   selectedFilterLabel: { color: discoveryColors.accentText, fontWeight: '800' },
   page: {
     gap: spacing.md,
@@ -641,7 +738,11 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
   },
   priceLabel: { ...typography.caption, color: discoveryColors.muted },
-  priceValueRow: { flexDirection: 'row', alignItems: 'baseline', gap: spacing.sm },
+  priceValueRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: spacing.sm,
+  },
   priceValue: {
     color: discoveryColors.text,
     fontSize: 28,
@@ -668,7 +769,11 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
     backgroundColor: 'rgba(25,22,33,0.82)',
   },
-  soundText: { ...typography.caption, color: discoveryColors.text, fontWeight: '700' },
+  soundText: {
+    ...typography.caption,
+    color: discoveryColors.text,
+    fontWeight: '700',
+  },
   marketDetails: { gap: spacing.md },
   compactMarketDetails: { gap: spacing.sm },
   marketMeta: {
@@ -755,8 +860,16 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     padding: spacing.xl,
   },
-  stateTitle: { ...typography.headline, color: discoveryColors.text, textAlign: 'center' },
-  stateText: { ...typography.subhead, color: discoveryColors.muted, textAlign: 'center' },
+  stateTitle: {
+    ...typography.headline,
+    color: discoveryColors.text,
+    textAlign: 'center',
+  },
+  stateText: {
+    ...typography.subhead,
+    color: discoveryColors.muted,
+    textAlign: 'center',
+  },
   retryButton: {
     minHeight: 44,
     justifyContent: 'center',
