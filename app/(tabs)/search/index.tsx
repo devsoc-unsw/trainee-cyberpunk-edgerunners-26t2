@@ -1,6 +1,6 @@
-import { router } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, TextInput, View } from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useMemo, useState } from 'react';
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, TextInput, View } from 'react-native';
 
 import { PlaceholderState } from '@/components/ui/placeholder-state';
 import { ThemedText } from '@/components/ui/themed-text';
@@ -11,12 +11,43 @@ export default function SearchScreen() {
   const [query, setQuery] = useState('');
   const [allMarkets, setAllMarkets] = useState<Awaited<ReturnType<typeof fetchMarkets>>>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    void fetchMarkets()
-      .then(setAllMarkets)
-      .finally(() => setIsLoading(false));
+  // Clearing both flags in `finally` matters for pull-to-refresh: if the fetch
+  // rejects, an uncleared isRefreshing leaves the spinner stuck on screen.
+  const load = useCallback(async () => {
+    try {
+      setAllMarkets(await fetchMarkets());
+      setErrorMessage(null);
+    } catch {
+      setErrorMessage('Markets could not be loaded. Pull down to try again.');
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
   }, []);
+
+  // Matches the other market lists in the app: reload on focus so switching to
+  // the tab shows current odds without needing a manual pull.
+  useFocusEffect(useCallback(() => { void load(); }, [load]));
+
+  const handleRefresh = useCallback(() => {
+    setIsRefreshing(true);
+    void load();
+  }, [load]);
+
+  const renderEmptyState = () => {
+    if (isLoading) {
+      return <ActivityIndicator color={colors.accent} />;
+    }
+
+    if (errorMessage) {
+      return <PlaceholderState title="Markets unavailable" description={errorMessage} />;
+    }
+
+    return <PlaceholderState title="No markets found" description="Try a different search." />;
+  };
 
   const markets = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -33,6 +64,13 @@ export default function SearchScreen() {
       keyExtractor={(item) => item.id}
       contentInsetAdjustmentBehavior="automatic"
       keyboardShouldPersistTaps="handled"
+      refreshControl={
+        <RefreshControl
+          refreshing={isRefreshing}
+          onRefresh={handleRefresh}
+          tintColor={colors.muted}
+        />
+      }
       style={{ flex: 1, backgroundColor: colors.background }}
       contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}
       ListHeaderComponent={
@@ -60,13 +98,7 @@ export default function SearchScreen() {
           </ThemedText>
         </View>
       }
-      ListEmptyComponent={
-        isLoading ? (
-          <ActivityIndicator color={colors.accent} />
-        ) : (
-          <PlaceholderState title="No markets found" description="Try a different search." />
-        )
-      }
+      ListEmptyComponent={renderEmptyState()}
       renderItem={({ item }) => (
         <Pressable
           accessibilityRole="button"

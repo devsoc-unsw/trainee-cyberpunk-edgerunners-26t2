@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { router } from 'expo-router';
-import { Pressable, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, View } from 'react-native';
 
 import { FormField, PasswordField } from '@/components/ui/form';
 import { Screen } from '@/components/ui/screen';
@@ -71,61 +71,66 @@ export default function SignupScreen() {
   }
 
   return (
-    <Screen
-      centered
-      automaticallyAdjustKeyboardInsets
-      contentContainerStyle={{ paddingVertical: spacing.xxxl }}
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={{ flex: 1 }}
     >
-      <View style={{ gap: spacing.sm }}>
-        <ThemedText variant="largeTitle">Create account</ThemedText>
-      </View>
-
-      <View style={{ gap: spacing.md }}>
-        <FormField
-          label="Email"
-          autoCapitalize="none"
-          autoComplete="email"
-          keyboardType="email-address"
-          textContentType="emailAddress"
-          placeholder="z5555555@unsw.edu.au"
-          value={email}
-          onChangeText={setEmail}
-        />
-
-        <PasswordField
-          label="Password"
-          autoComplete="password-new"
-          textContentType="newPassword"
-          placeholder="Password"
-          returnKeyType="done"
-          value={password}
-          onChangeText={setPassword}
-          onSubmitEditing={handleCreateAccount}
-        />
-
-        {errorMessage ? (
-          <ThemedText style={{ color: colors.accent }}>{errorMessage}</ThemedText>
-        ) : null}
-      </View>
-
-      <Pressable
-        accessibilityRole="button"
-        disabled={isSubmitting}
-        onPress={handleCreateAccount}
-        style={({ pressed }) => ({
-          width: '100%',
-          height: 50,
-          alignItems: 'center',
-          justifyContent: 'center',
-          borderRadius: radius.md,
-          backgroundColor: colors.accent,
-          opacity: pressed || isSubmitting ? 0.72 : 1,
-        })}
+      <Screen
+        centered
+        automaticallyAdjustKeyboardInsets
+        contentContainerStyle={{ paddingVertical: spacing.xxxl }}
       >
-        <ThemedText style={{ color: colors.accentText, fontWeight: '700' }}>
-          {isSubmitting ? 'Creating account…' : 'Create account'}
-        </ThemedText>
-      </Pressable>
-    </Screen>
+        <View style={{ gap: spacing.sm }}>
+          <ThemedText variant="largeTitle">Create account</ThemedText>
+        </View>
+
+        <View style={{ gap: spacing.md }}>
+          <FormField
+            label="Email"
+            autoCapitalize="none"
+            autoComplete="email"
+            keyboardType="email-address"
+            textContentType="emailAddress"
+            placeholder="z5555555@unsw.edu.au"
+            value={email}
+            onChangeText={setEmail}
+          />
+
+          <PasswordField
+            label="Password"
+            autoComplete="password-new"
+            textContentType="newPassword"
+            placeholder="Password"
+            returnKeyType="done"
+            value={password}
+            onChangeText={setPassword}
+            onSubmitEditing={handleCreateAccount}
+          />
+
+          {errorMessage ? (
+            <ThemedText style={{ color: colors.accent }}>{errorMessage}</ThemedText>
+          ) : null}
+        </View>
+
+        <Pressable
+          accessibilityRole="button"
+          disabled={isSubmitting}
+          onPress={handleCreateAccount}
+          style={({ pressed }) => ({
+            width: '100%',
+            height: 50,
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: radius.md,
+            backgroundColor: colors.accent,
+            opacity: pressed || isSubmitting ? 0.72 : 1,
+          })}
+        >
+          <ThemedText style={{ color: colors.accentText, fontWeight: '700' }}>
+            {isSubmitting ? 'Creating account…' : 'Create account'}
+          </ThemedText>
+        </Pressable>
+      </Screen>
+    </KeyboardAvoidingView>
   );
 }

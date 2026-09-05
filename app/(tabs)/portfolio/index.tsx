@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { ActivityIndicator, RefreshControl, View } from 'react-native';
 
@@ -57,7 +57,7 @@ function BalanceCard({ balance, todayProfit, winRate }: { balance: number; today
       <View style={styles.balanceColumn}>
         <ThemedText style={styles.balanceLabel}>Balance</ThemedText>
         <ThemedText style={styles.balanceValue}>{formatCredits(balance)} cr</ThemedText>
-        <ThemedText style={styles.todayProfit}>
+        <ThemedText style={todayProfit >= 0 ? styles.todayProfit : styles.todayLoss}>
           {todayProfit >= 0 ? '+' : ''}
           {formatCredits(todayProfit)} cr today
         </ThemedText>
@@ -128,13 +128,22 @@ function EmptySection({ message }: { message: string }) {
 }
 
 export default function PortfolioScreen() {
-  const { profile } = useSession();
+  const { profile, refresh } = useSession();
   const [positions, setPositions] = useState<Position[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const profileId = profile?.id;
+
+  // The session's `refresh` gets a new identity every time the profile changes,
+  // so depending on it directly would make the focus effect below re-run itself
+  // in a loop. Holding the latest one in a ref keeps `load` stable.
+  const refreshSession = useRef(refresh);
+
+  useEffect(() => {
+    refreshSession.current = refresh;
+  }, [refresh]);
 
   const load = useCallback(async () => {
     if (!profileId) {
@@ -144,7 +153,16 @@ export default function PortfolioScreen() {
     }
 
     try {
-      setPositions(await fetchPositions(profileId));
+      // Settling a bet moves the positions and the balance together. Refreshing
+      // only the positions left the Balance card and its "today" figure showing
+      // whatever they were when the app started, while the bet list updated
+      // around them.
+      const [nextPositions] = await Promise.all([
+        fetchPositions(profileId),
+        refreshSession.current(),
+      ]);
+
+      setPositions(nextPositions);
       setErrorMessage(null);
     } catch {
       setErrorMessage('Your predictions could not be loaded.');

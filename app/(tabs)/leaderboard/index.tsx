@@ -1,6 +1,6 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, View } from 'react-native';
 
 import { ThemedText } from '@/components/ui/themed-text';
 import { getLeaderboard, type LeaderboardEntry } from '@/lib/leaderboard';
@@ -187,36 +187,26 @@ export default function LeaderboardScreen() {
     );
   }
 
-  if (error && entries.length === 0) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: 'center',
-          padding: spacing.xl,
-          gap: spacing.md,
-          backgroundColor: colors.background,
-        }}
-      >
-        <ThemedText variant="title">{error}</ThemedText>
-        <RetryButton onPress={() => void loadLeaderboard()} />
-      </View>
-    );
-  }
-
   return (
     <FlatList
       data={rankedEntries}
       keyExtractor={(entry) => entry.profileId}
       contentInsetAdjustmentBehavior="automatic"
       style={{ flex: 1, backgroundColor: colors.background }}
+      alwaysBounceVertical
       contentContainerStyle={{
+        flexGrow: 1,
         paddingHorizontal: spacing.lg,
         paddingTop: spacing.sm,
         paddingBottom: spacing.xxl,
       }}
-      refreshing={refreshing}
-      onRefresh={() => void loadLeaderboard(true)}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={() => void loadLeaderboard(true)}
+          tintColor={colors.muted}
+        />
+      }
       ListHeaderComponent={
         error ? (
           <View
