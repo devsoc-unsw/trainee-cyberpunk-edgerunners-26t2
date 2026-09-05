@@ -76,7 +76,14 @@ function MarketChart({
   const history = item.history
     .slice(-MAX_CHART_POINTS)
     .map((point) => Math.round(point.probability * 100));
-  const values = history.length ? history : [yes];
+  // Gifted Charts cannot draw a line from a single point. Give a market with
+  // no recorded bets a short, honest flat baseline at its starting probability;
+  // a lone history point becomes a baseline-to-current segment.
+  const values = history.length === 0
+    ? Array.from({ length: 8 }, () => yes)
+    : history.length === 1
+      ? [history[0], yes]
+      : history;
   const change = yes - values[0];
 
   return (
@@ -91,15 +98,6 @@ function MarketChart({
               {change}¢
             </Text>
           </View>
-        </View>
-        <View style={styles.ranges}>
-          {['1H', '1D', '1W', 'ALL'].map((range) => (
-            <View key={range} style={[styles.range, range === '1W' && styles.activeRange]}>
-              <Text style={[styles.rangeLabel, range === '1W' && styles.activeRangeLabel]}>
-                {range}
-              </Text>
-            </View>
-          ))}
         </View>
       </View>
       <View style={styles.chart}>
@@ -658,17 +656,6 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums'],
   },
   negativeChange: { color: discoveryColors.no },
-  ranges: { flexDirection: 'row', gap: spacing.xs },
-  range: {
-    minWidth: 32,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: radius.full,
-    alignItems: 'center',
-  },
-  activeRange: { backgroundColor: discoveryColors.elevatedSurface },
-  rangeLabel: { ...typography.caption, color: discoveryColors.muted },
-  activeRangeLabel: { color: discoveryColors.text },
   chart: { alignItems: 'center', overflow: 'hidden' },
   dateRow: { flexDirection: 'row', justifyContent: 'space-between' },
   dateLabel: { ...typography.caption, color: discoveryColors.subtle },
