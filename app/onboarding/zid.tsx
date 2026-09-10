@@ -5,13 +5,13 @@ import { View } from 'react-native';
 import { FormField, PrimaryButton } from '@/components/ui/form';
 import { Screen } from '@/components/ui/screen';
 import { ThemedText } from '@/components/ui/themed-text';
-import { deleteAccount } from '@/lib/data';
+import { deleteAccount, linkZidEmail } from '@/lib/data';
 import { ZID_HINT, normalizeZid, validateZid } from '@/lib/zid';
 import { ZidTakenError, useSession } from '@/state/session';
 import { spacing } from '@/theme';
 
 export default function LinkZidScreen() {
-  const { saveZid, signOut } = useSession();
+  const { saveZid, signOut, refresh } = useSession();
   const [zid, setZid] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -30,6 +30,16 @@ export default function LinkZidScreen() {
     setIsSubmitting(true);
     try {
       await saveZid(normalized);
+      // Best-effort: turns the self-reported zID into a UNSW-looking email
+      // for display. The zID is never verified against a real UNSW system,
+      // so this can silently no-op (e.g. that address is already registered
+      // elsewhere) without blocking the zID link that already succeeded.
+      try {
+        await linkZidEmail();
+        await refresh();
+      } catch {
+        // Ignored -- the account is fully usable without this.
+      }
       router.replace('/');
     } catch (error) {
       if (error instanceof ZidTakenError) {
