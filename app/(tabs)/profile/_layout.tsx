@@ -7,6 +7,10 @@ export default function ProfileLayout() {
       <Stack.Screen name="settings" options={{ title: 'Settings', headerLargeTitle: false }} />
       <Stack.Screen name="username" options={{ title: 'Username', headerLargeTitle: false }} />
       <Stack.Screen name="password" options={{ title: 'Password', headerLargeTitle: false }} />
+      <Stack.Screen
+        name="delete-account"
+        options={{ title: 'Delete account', headerLargeTitle: false }}
+      />
     </Stack>
   );
 }

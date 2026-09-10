@@ -307,6 +307,27 @@ export async function placeBet(outcomeId: string, stake: number) {
   return result as { position_id: string; stake: number; pool: number; balance: number };
 }
 
+export async function deleteAccount() {
+  const { error } = await supabase.functions.invoke('delete_account');
+
+  if (error) {
+    let message = getErrorMessage(error);
+
+    if (error instanceof FunctionsHttpError) {
+      try {
+        const body = await error.context.json();
+        if (typeof body?.error === 'string') {
+          message = body.error;
+        }
+      } catch {
+
+      }
+    }
+
+    throw new Error(message);
+  }
+}
+
 export async function createMarket(input: {
   title: string;
   description: string;

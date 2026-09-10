@@ -423,6 +423,13 @@ export default function FeedScreen() {
   const { reduceMotion } = useAccessibility();
   const headerClearance = insets.top + 108;
   const requestedMarketId = Array.isArray(marketId) ? marketId[0] : marketId;
+  // expo-router keeps `marketId` on this route's params for the life of this
+  // screen instance -- it is never cleared after the initial jump. These
+  // track which requestedMarketId has already been acted on, so a later
+  // category tap (or a focus-triggered data refresh changing `items`) does
+  // not keep re-forcing "All" or re-snapping the scroll position.
+  const forcedCategoryForMarketRef = useRef<string | null>(null);
+  const jumpedToMarketRef = useRef<string | null>(null);
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (state) =>

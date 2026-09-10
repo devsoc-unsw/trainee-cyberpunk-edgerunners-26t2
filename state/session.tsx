@@ -9,6 +9,7 @@ export type Profile = {
   id: string;
   email: string;
   username: string | null;
+  zid: string | null;
   role: UserRole;
   status: AccountStatus;
   balance: number;
@@ -22,9 +23,17 @@ type SessionContextValue = {
   isLoading: boolean;
   /** A signed-in user who has not picked a username yet. */
   needsUsername: boolean;
+  /**
+   * A signed-in Apple account with no zID on file yet. Apple sign-in emails
+   * (a real forwarded address or a private relay one) can't be matched
+   * against a UNSW email/password account, so the zID is what stops the same
+   * person from ending up with two separate accounts.
+   */
+  needsZid: boolean;
   refresh: () => Promise<void>;
   signOut: () => Promise<void>;
   saveUsername: (username: string) => Promise<void>;
+  saveZid: (zid: string) => Promise<void>;
   setBalance: (balance: number) => void;
 };
 
@@ -44,6 +53,13 @@ export class UsernameTakenError extends Error {
   }
 }
 
+export class ZidTakenError extends Error {
+  constructor() {
+    super('That zID is already linked to another account.');
+    this.name = 'ZidTakenError';
+  }
+}
+
 /**
  * The profile fetched for a specific user. Keying it by id rather than storing
  * a bare profile means a signed-out or swapped user can never briefly see the
@@ -54,9 +70,11 @@ type LoadedProfile = {
   profile: Profile | null;
 };
 
+const PROFILE_COLUMNS = 'id, username, zid, role, status, created_at';
+
 async function fetchProfile(user: User): Promise<Profile> {
   const [profileResult, balanceResult] = await Promise.all([
-    supabase.from('profiles').select('id, username, role, status, created_at').eq('id', user.id).maybeSingle(),
+    supabase.from('profiles').select(PROFILE_COLUMNS).eq('id', user.id).maybeSingle(),
     supabase.from('profile_balances').select('balance').eq('profile_id', user.id).maybeSingle(),
   ]);
 
@@ -72,7 +90,7 @@ async function fetchProfile(user: User): Promise<Profile> {
     const { data, error } = await supabase
       .from('profiles')
       .insert({ id: user.id })
-      .select('id, username, role, status, created_at')
+      .select(PROFILE_COLUMNS)
       .single();
     if (error) throw error;
     profile = data;
@@ -82,6 +100,7 @@ async function fetchProfile(user: User): Promise<Profile> {
     id: profile.id,
     email: user.email ?? '',
     username: profile.username,
+    zid: profile.zid,
     role: profile.role === 'ADMIN' ? 'ADMIN' : 'USER',
     status: profile.status === 'SUSPENDED' ? 'SUSPENDED' : 'ACTIVE',
     balance: balanceResult.data?.balance ?? 0,
@@ -225,6 +244,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       profile,
       isLoading: isLoadingUser || (user !== null && loaded?.userId !== user.id),
       needsUsername: profile !== null && !profile.username,
+      needsZid: profile !== null && !profile.zid && user?.app_metadata?.provider === 'apple',
       refresh: async () => {
         if (user) {
           await loadProfile(user);
@@ -271,6 +291,35 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         }
 
         updateProfile((current) => ({ ...current, username: data.username }));
+      },
+      saveZid: async (zid: string) => {
+        if (!user) {
+          throw new Error('You must be signed in to link a zID.');
+        }
+
+        const { data, error } = await supabase
+          .from('profiles')
+          .update({ zid })
+          .eq('id', user.id)
+          .select('zid')
+          .single();
+
+        if (error) {
+          if (error.code === UNIQUE_VIOLATION) {
+            throw new ZidTakenError();
+          }
+          if (error.code === CHECK_VIOLATION) {
+            throw new Error('Enter your zID as z followed by 7 digits, e.g. z5555555.');
+          }
+          if (error.code === NO_ROWS) {
+            throw new Error(
+              'Your profile could not be found to update. Sign out and back in, and if it keeps happening the account is missing its profile row.'
+            );
+          }
+          throw new Error(error.message || 'Could not save your zID.');
+        }
+
+        updateProfile((current) => ({ ...current, zid: data.zid }));
       },
       setBalance: (balance: number) => {
         updateProfile((current) => ({ ...current, balance }));

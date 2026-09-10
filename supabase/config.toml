@@ -423,3 +423,9 @@ entrypoint = "./functions/place_bet/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/place_bet/*.html" ]
+
+[functions.delete_account]
+enabled = true
+verify_jwt = true
+import_map = "./functions/delete_account/deno.json"
+entrypoint = "./functions/delete_account/index.ts"

@@ -92,6 +92,18 @@ export default function SettingsScreen() {
           settings.
         </ThemedText>
       </View>
+
+      <View style={{ gap: spacing.sm }}>
+        <AdminSectionLabel>Danger zone</AdminSectionLabel>
+        <ListCard>
+          <ListRow
+            title="Delete account"
+            danger
+            accessibilityHint="Opens the delete account screen"
+            onPress={() => router.push('/profile/delete-account')}
+          />
+        </ListCard>
+      </View>
     </Screen>
   );
 }
