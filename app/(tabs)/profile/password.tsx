@@ -5,6 +5,7 @@ import { View } from 'react-native';
 import { PasswordField, PrimaryButton } from '@/components/ui/form';
 import { Screen } from '@/components/ui/screen';
 import { ThemedText } from '@/components/ui/themed-text';
+import { AppleSignInCancelledError, signInWithApple } from '@/lib/apple-auth';
 import { hasPasswordAuth } from '@/lib/auth-providers';
 import { supabase } from '@/lib/supabase';
 import { useSession } from '@/state/session';
@@ -42,7 +43,34 @@ export default function ChangePasswordScreen() {
 
     setIsSubmitting(true);
 
-    if (!isSettingFirstPassword) {
+    if (isSettingFirstPassword) {
+      if (!user) {
+        setIsSubmitting(false);
+        setErrorMessage('Could not confirm who you are. Sign in again and retry.');
+        return;
+      }
+
+      // No existing password to confirm, so Apple's own sign-in sheet
+      // (itself gated behind Face ID, Touch ID, or a device passcode) is the
+      // equivalent proof-of-presence before adding a new way into the
+      // account. Without this, anyone who picks up an unlocked phone with a
+      // live session could set a password and sign in as this user later
+      // without ever touching Apple ID.
+      try {
+        const reauthed = await signInWithApple();
+        if (!reauthed.user || reauthed.user.id !== user.id) {
+          setIsSubmitting(false);
+          setErrorMessage('That Apple ID does not match this account.');
+          return;
+        }
+      } catch (error) {
+        setIsSubmitting(false);
+        if (!(error instanceof AppleSignInCancelledError)) {
+          setErrorMessage(error instanceof Error ? error.message : 'Could not verify your Apple ID.');
+        }
+        return;
+      }
+    } else {
       if (newPassword === currentPassword) {
         setIsSubmitting(false);
         setErrorMessage('Your new password must be different from the current one.');
@@ -100,7 +128,7 @@ export default function ChangePasswordScreen() {
         </ThemedText>
         <ThemedText variant="subhead">
           {isSettingFirstPassword
-            ? 'This account signs in with Apple. Set a password to also sign in with your email.'
+            ? "This account signs in with Apple, so we'll ask you to confirm with Apple again before setting a password."
             : 'Confirm your current password, then choose a new one.'}
         </ThemedText>
       </View>
