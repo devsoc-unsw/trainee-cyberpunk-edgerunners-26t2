@@ -1,5 +1,5 @@
 import { createContext, use, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AuthRetryableFetchError, type User } from '@supabase/supabase-js';
+import { AuthRetryableFetchError, AuthSessionMissingError, type User } from '@supabase/supabase-js';
 import { AppState } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
@@ -9,6 +9,7 @@ export type Profile = {
   id: string;
   email: string;
   username: string | null;
+  zid: string | null;
   role: UserRole;
   status: AccountStatus;
   balance: number;
@@ -22,9 +23,25 @@ type SessionContextValue = {
   isLoading: boolean;
   /** A signed-in user who has not picked a username yet. */
   needsUsername: boolean;
+  /**
+   * A signed-in Apple account with no zID on file yet. Apple sign-in emails
+   * (a real forwarded address or a private relay one) can't be matched
+   * against a UNSW email/password account, so the zID is what stops the same
+   * person from ending up with two separate accounts.
+   */
+  needsZid: boolean;
   refresh: () => Promise<void>;
+  /**
+   * Re-fetches the auth user itself, not just the profile row. Needed after
+   * anything that changes `app_metadata.providers` server-side (setting a
+   * first password, linking Apple) -- the client's cached `user` only
+   * updates on its own via Supabase's own auth-state events, and this makes
+   * that update immediate instead of depending on one arriving.
+   */
+  refreshUser: () => Promise<void>;
   signOut: () => Promise<void>;
   saveUsername: (username: string) => Promise<void>;
+  saveZid: (zid: string) => Promise<void>;
   setBalance: (balance: number) => void;
 };
 
@@ -44,6 +61,13 @@ export class UsernameTakenError extends Error {
   }
 }
 
+export class ZidTakenError extends Error {
+  constructor() {
+    super('That zID is already linked to another account.');
+    this.name = 'ZidTakenError';
+  }
+}
+
 /**
  * The profile fetched for a specific user. Keying it by id rather than storing
  * a bare profile means a signed-out or swapped user can never briefly see the
@@ -54,9 +78,11 @@ type LoadedProfile = {
   profile: Profile | null;
 };
 
+const PROFILE_COLUMNS = 'id, username, zid, email, role, status, created_at';
+
 async function fetchProfile(user: User): Promise<Profile> {
   const [profileResult, balanceResult] = await Promise.all([
-    supabase.from('profiles').select('id, username, role, status, created_at').eq('id', user.id).maybeSingle(),
+    supabase.from('profiles').select(PROFILE_COLUMNS).eq('id', user.id).maybeSingle(),
     supabase.from('profile_balances').select('balance').eq('profile_id', user.id).maybeSingle(),
   ]);
 
@@ -72,7 +98,7 @@ async function fetchProfile(user: User): Promise<Profile> {
     const { data, error } = await supabase
       .from('profiles')
       .insert({ id: user.id })
-      .select('id, username, role, status, created_at')
+      .select(PROFILE_COLUMNS)
       .single();
     if (error) throw error;
     profile = data;
@@ -80,8 +106,15 @@ async function fetchProfile(user: User): Promise<Profile> {
 
   return {
     id: profile.id,
-    email: user.email ?? '',
+    // profiles.email, not the auth user's email: admin-side email changes
+    // (e.g. linking a zID to a UNSW address after Apple sign-in) update the
+    // database row directly and never touch this client's cached auth
+    // session, so `user.email` can sit stale until the token happens to
+    // refresh. profiles.email is kept in sync with every path that changes
+    // an account's email, including that one.
+    email: profile.email ?? user.email ?? '',
     username: profile.username,
+    zid: profile.zid,
     role: profile.role === 'ADMIN' ? 'ADMIN' : 'USER',
     status: profile.status === 'SUSPENDED' ? 'SUSPENDED' : 'ACTIVE',
     balance: balanceResult.data?.balance ?? 0,
@@ -106,21 +139,23 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     // session revoked -- still looks valid, so the app booted straight into the
     // signed-in UI instead of the login screen.
     supabase.auth.getUser().then(async ({ data, error }) => {
-      if (error) {
-        console.error('getUser failed:', {
-          name: error.name,
-          message: error.message,
-          status: error.status,
-          code: error.code,
-        });
-      }
-      
       if (!isMounted) {
         return;
       }
 
       if (!error) {
         setUser(data.user);
+        setIsLoadingUser(false);
+        return;
+      }
+
+      // No stored session at all -- a fresh install, a signed-out device, or
+      // this app now pointing at a different Supabase project than the one
+      // that issued a previously-stored token. This is the expected steady
+      // state for a signed-out user, not a failure worth logging; `user`
+      // staying null already sends them to /login via app/index.tsx.
+      if (error instanceof AuthSessionMissingError) {
+        setUser(null);
         setIsLoadingUser(false);
         return;
       }
@@ -135,6 +170,16 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         }
         return;
       }
+
+      // Anything else means a token was present but the server actively
+      // rejected it (revoked, expired past refresh, account deleted) --
+      // worth surfacing while debugging, unlike the expected cases above.
+      console.error('getUser failed:', {
+        name: error.name,
+        message: error.message,
+        status: error.status,
+        code: error.code,
+      });
 
       // The server rejected the token, so drop it locally. Without this the
       // stale token stays in storage and every launch repeats this dance.
@@ -225,10 +270,19 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       profile,
       isLoading: isLoadingUser || (user !== null && loaded?.userId !== user.id),
       needsUsername: profile !== null && !profile.username,
+      needsZid: profile !== null && !profile.zid && user?.app_metadata?.provider === 'apple',
       refresh: async () => {
         if (user) {
           await loadProfile(user);
         }
+      },
+      refreshUser: async () => {
+        const { data, error } = await supabase.auth.getUser();
+        if (error || !data.user) {
+          return;
+        }
+        setUser(data.user);
+        await loadProfile(data.user);
       },
       signOut: async () => {
         // Local scope: clearing this device's session always succeeds, even
@@ -271,6 +325,35 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         }
 
         updateProfile((current) => ({ ...current, username: data.username }));
+      },
+      saveZid: async (zid: string) => {
+        if (!user) {
+          throw new Error('You must be signed in to link a zID.');
+        }
+
+        const { data, error } = await supabase
+          .from('profiles')
+          .update({ zid })
+          .eq('id', user.id)
+          .select('zid')
+          .single();
+
+        if (error) {
+          if (error.code === UNIQUE_VIOLATION) {
+            throw new ZidTakenError();
+          }
+          if (error.code === CHECK_VIOLATION) {
+            throw new Error('Enter your zID as z followed by 7 digits, e.g. z5555555.');
+          }
+          if (error.code === NO_ROWS) {
+            throw new Error(
+              'Your profile could not be found to update. Sign out and back in, and if it keeps happening the account is missing its profile row.'
+            );
+          }
+          throw new Error(error.message || 'Could not save your zID.');
+        }
+
+        updateProfile((current) => ({ ...current, zid: data.zid }));
       },
       setBalance: (balance: number) => {
         updateProfile((current) => ({ ...current, balance }));

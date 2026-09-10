@@ -10,6 +10,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.pickradmin.UNSWager",
+      "usesAppleSignIn": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -32,6 +33,7 @@
       "expo-status-bar",
       "expo-secure-store",
       "expo-video",
+      "expo-apple-authentication",
       [
         "expo-image-picker",
         {

@@ -423,6 +423,13 @@ export default function FeedScreen() {
   const { reduceMotion } = useAccessibility();
   const headerClearance = insets.top + 108;
   const requestedMarketId = Array.isArray(marketId) ? marketId[0] : marketId;
+  // expo-router keeps `marketId` on this route's params for the life of this
+  // screen instance -- it is never cleared after the initial jump. These
+  // track which requestedMarketId has already been acted on, so a later
+  // category tap (or a focus-triggered data refresh changing `items`) does
+  // not keep re-forcing "All" or re-snapping the scroll position.
+  const forcedCategoryForMarketRef = useRef<string | null>(null);
+  const jumpedToMarketRef = useRef<string | null>(null);
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (state) =>
@@ -504,9 +511,16 @@ export default function FeedScreen() {
   );
 
   // A market selected from Search must always be reachable, even if the user
-  // previously left Home on a narrower category filter.
+  // previously left Home on a narrower category filter. Runs once per
+  // requestedMarketId -- without the ref guard, picking any other category
+  // afterwards would immediately be stomped back to "All" on every render,
+  // since the marketId param never goes away on its own.
   useEffect(() => {
-    if (requestedMarketId && selectedCategory !== 'All') {
+    if (!requestedMarketId || forcedCategoryForMarketRef.current === requestedMarketId) {
+      return;
+    }
+    forcedCategoryForMarketRef.current = requestedMarketId;
+    if (selectedCategory !== 'All') {
       requestAnimationFrame(() => {
         setSelectedCategory('All');
         setActiveIndex(0);
@@ -516,13 +530,22 @@ export default function FeedScreen() {
 
   // Search hands Home a market ID so the existing full-screen feed remains the
   // single market experience. getItemLayout makes this jump deterministic.
+  // Also runs once per requestedMarketId, so a later data refresh (focus, a
+  // placed bet) that produces a new `items` reference doesn't keep snapping
+  // the list back here after the user has scrolled elsewhere.
   useEffect(() => {
-    if (!requestedMarketId || !viewport.height || selectedCategory !== 'All') {
+    if (
+      !requestedMarketId ||
+      !viewport.height ||
+      selectedCategory !== 'All' ||
+      jumpedToMarketRef.current === requestedMarketId
+    ) {
       return;
     }
     const index = items.findIndex((item) => item.market.id === requestedMarketId);
     if (index < 0) return;
 
+    jumpedToMarketRef.current = requestedMarketId;
     requestAnimationFrame(() => {
       setActiveIndex(index);
       listRef.current?.scrollToOffset({
