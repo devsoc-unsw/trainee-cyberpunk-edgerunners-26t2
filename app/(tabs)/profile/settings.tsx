@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { router } from 'expo-router';
 import { View } from 'react-native';
 
@@ -5,6 +6,8 @@ import { AdminSectionLabel } from '@/components/admin/admin-components';
 import { ListCard, ListRow, SegmentedControl, ToggleRow } from '@/components/ui/list';
 import { Screen } from '@/components/ui/screen';
 import { ThemedText } from '@/components/ui/themed-text';
+import { isAppleSignInAvailable } from '@/lib/apple-auth';
+import { hasAppleAuth, hasPasswordAuth } from '@/lib/auth-providers';
 import { TextSize, useAccessibility } from '@/state/accessibility';
 import { useSession } from '@/state/session';
 import { colors, radius, spacing } from '@/theme';
@@ -16,8 +19,23 @@ const TEXT_SIZE_OPTIONS: { value: TextSize; label: string }[] = [
 ];
 
 export default function SettingsScreen() {
-  const { profile } = useSession();
+  const { user, profile } = useSession();
   const { textSize, boldText, highContrast, reduceMotion, setPreference } = useAccessibility();
+  const canUsePassword = hasPasswordAuth(user);
+  const [isAppleAvailable, setIsAppleAvailable] = useState(false);
+  const canLinkApple = isAppleAvailable && !hasAppleAuth(user);
+
+  useEffect(() => {
+    let isMounted = true;
+    isAppleSignInAvailable().then((available) => {
+      if (isMounted) {
+        setIsAppleAvailable(available);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   return (
     <Screen>
@@ -31,11 +49,21 @@ export default function SettingsScreen() {
             onPress={() => router.push('/profile/username')}
           />
           <ListRow
-            title="Password"
-            accessibilityHint="Opens the change password screen"
+            title={canUsePassword ? 'Password' : 'Set a password'}
+            accessibilityHint={
+              canUsePassword ? 'Opens the change password screen' : 'Opens the set password screen'
+            }
             onPress={() => router.push('/profile/password')}
           />
           <ListRow title="Email" value={profile?.email} />
+          {canLinkApple ? (
+            <ListRow
+              title="Link Apple ID"
+              subtitle="Sign in with Apple too, without losing this account"
+              accessibilityHint="Opens the link Apple ID screen"
+              onPress={() => router.push('/profile/link-apple')}
+            />
+          ) : null}
         </ListCard>
       </View>
 

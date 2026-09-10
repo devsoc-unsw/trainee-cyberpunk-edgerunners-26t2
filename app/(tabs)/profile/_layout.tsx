@@ -8,6 +8,10 @@ export default function ProfileLayout() {
       <Stack.Screen name="username" options={{ title: 'Username', headerLargeTitle: false }} />
       <Stack.Screen name="password" options={{ title: 'Password', headerLargeTitle: false }} />
       <Stack.Screen
+        name="link-apple"
+        options={{ title: 'Link Apple ID', headerLargeTitle: false }}
+      />
+      <Stack.Screen
         name="delete-account"
         options={{ title: 'Delete account', headerLargeTitle: false }}
       />

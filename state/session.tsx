@@ -31,6 +31,14 @@ type SessionContextValue = {
    */
   needsZid: boolean;
   refresh: () => Promise<void>;
+  /**
+   * Re-fetches the auth user itself, not just the profile row. Needed after
+   * anything that changes `app_metadata.providers` server-side (setting a
+   * first password, linking Apple) -- the client's cached `user` only
+   * updates on its own via Supabase's own auth-state events, and this makes
+   * that update immediate instead of depending on one arriving.
+   */
+  refreshUser: () => Promise<void>;
   signOut: () => Promise<void>;
   saveUsername: (username: string) => Promise<void>;
   saveZid: (zid: string) => Promise<void>;
@@ -70,7 +78,7 @@ type LoadedProfile = {
   profile: Profile | null;
 };
 
-const PROFILE_COLUMNS = 'id, username, zid, role, status, created_at';
+const PROFILE_COLUMNS = 'id, username, zid, email, role, status, created_at';
 
 async function fetchProfile(user: User): Promise<Profile> {
   const [profileResult, balanceResult] = await Promise.all([
@@ -98,7 +106,13 @@ async function fetchProfile(user: User): Promise<Profile> {
 
   return {
     id: profile.id,
-    email: user.email ?? '',
+    // profiles.email, not the auth user's email: admin-side email changes
+    // (e.g. linking a zID to a UNSW address after Apple sign-in) update the
+    // database row directly and never touch this client's cached auth
+    // session, so `user.email` can sit stale until the token happens to
+    // refresh. profiles.email is kept in sync with every path that changes
+    // an account's email, including that one.
+    email: profile.email ?? user.email ?? '',
     username: profile.username,
     zid: profile.zid,
     role: profile.role === 'ADMIN' ? 'ADMIN' : 'USER',
@@ -261,6 +275,14 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         if (user) {
           await loadProfile(user);
         }
+      },
+      refreshUser: async () => {
+        const { data, error } = await supabase.auth.getUser();
+        if (error || !data.user) {
+          return;
+        }
+        setUser(data.user);
+        await loadProfile(data.user);
       },
       signOut: async () => {
         // Local scope: clearing this device's session always succeeds, even
