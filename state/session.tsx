@@ -1,5 +1,5 @@
 import { createContext, use, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AuthRetryableFetchError, type User } from '@supabase/supabase-js';
+import { AuthRetryableFetchError, AuthSessionMissingError, type User } from '@supabase/supabase-js';
 import { AppState } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
@@ -125,21 +125,23 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     // session revoked -- still looks valid, so the app booted straight into the
     // signed-in UI instead of the login screen.
     supabase.auth.getUser().then(async ({ data, error }) => {
-      if (error) {
-        console.error('getUser failed:', {
-          name: error.name,
-          message: error.message,
-          status: error.status,
-          code: error.code,
-        });
-      }
-      
       if (!isMounted) {
         return;
       }
 
       if (!error) {
         setUser(data.user);
+        setIsLoadingUser(false);
+        return;
+      }
+
+      // No stored session at all -- a fresh install, a signed-out device, or
+      // this app now pointing at a different Supabase project than the one
+      // that issued a previously-stored token. This is the expected steady
+      // state for a signed-out user, not a failure worth logging; `user`
+      // staying null already sends them to /login via app/index.tsx.
+      if (error instanceof AuthSessionMissingError) {
+        setUser(null);
         setIsLoadingUser(false);
         return;
       }
@@ -154,6 +156,16 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         }
         return;
       }
+
+      // Anything else means a token was present but the server actively
+      // rejected it (revoked, expired past refresh, account deleted) --
+      // worth surfacing while debugging, unlike the expected cases above.
+      console.error('getUser failed:', {
+        name: error.name,
+        message: error.message,
+        status: error.status,
+        code: error.code,
+      });
 
       // The server rejected the token, so drop it locally. Without this the
       // stale token stays in storage and every launch repeats this dance.
